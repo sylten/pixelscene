@@ -172,8 +172,6 @@ Should show `/dev/fb0`. If nothing appears, SPI or the boot config isn't set cor
 
 ## Step 7 — Build and install the SPI display driver
 
-`fbcp-ili9341` copies the framebuffer to the SPI display. It must be built with DMA disabled and specific channel settings for this hardware.
-
 ```bash
 sudo apt install -y cmake git build-essential libraspberrypi-dev
 
@@ -198,7 +196,7 @@ Test it:
 sudo ./fbcp-ili9341
 ```
 
-You should see the console login prompt appear on the display. `Ctrl+C` to stop.
+You should see the console login prompt on the display. `Ctrl+C` to stop.
 
 Install as a service:
 
@@ -230,8 +228,6 @@ Status should show `active (running)`.
 
 ## Step 8 — Verify the display pipeline
 
-Test that pygame can draw to the framebuffer:
-
 ```bash
 sudo apt install -y python3-pygame
 
@@ -261,9 +257,7 @@ pygame.quit()
 "
 ```
 
-You should see the display turn red, then green. If that works, the full pipeline is confirmed.
-
-> **Note:** We do NOT use `pygame.display.set_mode()` or `SDL_VIDEODRIVER`. SDL 2 on Bookworm does not include fbcon support. Instead, pygame draws to a `pygame.Surface` and we write frames directly to `/dev/fb0` via mmap. The game engine handles this transparently.
+Display should turn red then green. If it does, the pipeline is confirmed.
 
 ---
 
@@ -273,8 +267,8 @@ You should see the display turn red, then green. If that works, the full pipelin
 sudo apt install -y python3-pip python3-pygame python3-dev python3-venv
 
 cd ~
-git clone https://github.com/sylten/pixelscene.git pixel-pi
-cd pixel-pi
+git clone https://github.com/your-org/pixelscene.git
+cd pixelscene
 
 python3 -m venv venv --system-site-packages
 source venv/bin/activate
@@ -285,7 +279,7 @@ pip install -r requirements.txt
 
 ---
 
-## Step 10 — Configure pixel-pi
+## Step 10 — Configure
 
 ```bash
 cp config.example.py config.py
@@ -295,7 +289,7 @@ nano config.py
 Key settings:
 
 ```python
-DISPLAY_DRIVER = "fb"         # Direct framebuffer — do not use "fbcon" or "sdl"
+DISPLAY_DRIVER = "fb"
 FRAMEBUFFER = "/dev/fb0"
 HTTP_PORT = 5000
 HTTP_HOST = "0.0.0.0"
@@ -311,18 +305,14 @@ source venv/bin/activate
 python3 main.py
 ```
 
-The display should show the overworld scene. From your Mac, test an event:
-
-```bash
-curl -X POST http://pixel-pi.local:5000/event \
-  -H "Content-Type: application/json" \
-  -d '{"event": "sale"}'
-```
-
-Check health:
+The display should show the overworld scene. From your Mac:
 
 ```bash
 curl http://pixel-pi.local:5000/health
+
+curl -X POST http://pixel-pi.local:5000/event \
+  -H "Content-Type: application/json" \
+  -d '{"event": "sale"}'
 ```
 
 `Ctrl+C` when done.
@@ -335,12 +325,11 @@ curl http://pixel-pi.local:5000/health
 sudo tee /etc/systemd/system/pixel-pi.service > /dev/null <<EOF
 [Unit]
 Description=pixel-pi animation server
-After=network-online.target fbcp.service
-Wants=network-online.target
 
 [Service]
-WorkingDirectory=/home/pi/pixel-pi
-ExecStart=/home/pi/pixel-pi/venv/bin/python3 main.py
+WorkingDirectory=/home/pi/pixelscene
+ExecStartPre=/bin/sleep 5
+ExecStart=/home/pi/pixelscene/venv/bin/python3 main.py
 Restart=always
 RestartSec=5
 User=pi
@@ -349,10 +338,21 @@ User=pi
 WantedBy=multi-user.target
 EOF
 
+sudo systemctl daemon-reload
 sudo systemctl enable pixel-pi
 sudo systemctl start pixel-pi
 journalctl -u pixel-pi -f
 ```
+
+The scene should appear on the display. Reboot to confirm autostart:
+
+```bash
+sudo reboot
+```
+
+After boot the scene should appear automatically without any SSH intervention.
+
+> **Note on network:** The service has no network dependency intentionally. The HTTP server will fail to bind if the network isn't up yet, but the display and animations will still work. Flask will retry on the next restart cycle.
 
 ---
 
@@ -364,11 +364,7 @@ Find the Pi's MAC address:
 ip link show wlan0
 ```
 
-In your router's admin panel, bind that MAC to a fixed IP. Reboot:
-
-```bash
-sudo reboot
-```
+In your router's admin panel, bind that MAC to a fixed IP. Update digipi's config with that IP.
 
 ---
 
@@ -381,7 +377,7 @@ Add the pixel-pi URL to digipi's config and add the HTTP notify call to its even
 ## Updating
 
 ```bash
-cd ~/pixel-pi
+cd ~/pixelscene
 git pull
 sudo systemctl restart pixel-pi
 ```
@@ -390,7 +386,7 @@ sudo systemctl restart pixel-pi
 
 ## Development on Desktop
 
-The game renders to a `pygame.Surface` internally. For desktop development, set `DISPLAY_DRIVER = "sdl"` in `config.py` — this uses a normal pygame window instead of the framebuffer. The HTTP server works the same.
+Set `DISPLAY_DRIVER = "sdl"` in `config.py` to render to a 480×320 pygame window on your Mac.
 
 ```bash
 python3 -m venv venv
@@ -403,47 +399,58 @@ python3 main.py
 
 ## Troubleshooting
 
-**Display stays black / no console on screen**
+**Scene doesn't appear on boot**
 
-Check fbcp:
+Check the service started:
+```bash
+sudo systemctl status pixel-pi
+journalctl -u pixel-pi -n 30
+```
+
+If `inactive (dead)` with no log entries, the service file may have a dependency issue. Make sure the `[Unit]` section has no `After=` or `Wants=` lines — the `ExecStartPre=/bin/sleep 5` handles timing instead.
+
+---
+
+**Display stays black**
+
 ```bash
 sudo systemctl status fbcp
 journalctl -u fbcp -n 20
 ```
 
-If it shows `Failed to allocate GPU memory` — make sure `gpu_mem=64` is in config.txt and `USE_DMA_TRANSFERS=OFF` was used when building.
+If fbcp shows `Failed to allocate GPU memory` — confirm `gpu_mem=64` is in config.txt and fbcp was built with `-DUSE_DMA_TRANSFERS=OFF`.
 
 ---
 
-**`bcm_host.h: No such file or directory` when building**
+**`bcm_host.h` error when building fbcp**
 
 Wrong OS. Must be Bookworm 32-bit. Reflash.
 
 ---
 
-**fbcp crashes with `DMA RX channel was in use`**
+**pygame draws but nothing on display**
 
-Rebuild with `-DUSE_DMA_TRANSFERS=OFF`. See Step 7.
-
----
-
-**pygame draws but nothing appears on display**
-
-Check fbcp is running (`sudo systemctl status fbcp`). Make sure `FRAMEBUFFER = "/dev/fb0"` in config.py.
+Check fbcp is running. Confirm `FRAMEBUFFER = "/dev/fb0"` in config.py.
 
 ---
 
-**`/dev/fb0` missing after boot**
+**`/dev/fb0` missing**
 
-The vc4 driver may have been re-enabled. Check config.txt — `dtoverlay=vc4-fkms-v3d` must be commented out.
+The vc4 driver may be enabled. Check config.txt — `dtoverlay=vc4-fkms-v3d` must be commented out.
 
 ---
 
-**`pixel-pi.local` doesn't resolve**
+**`No module named 'flask'`**
 
-Use the IP directly, or:
+Venv not activated. Either activate it (`source venv/bin/activate`) or make sure the service uses the full venv path (`/home/pi/pixelscene/venv/bin/python3`).
+
+---
+
+**`Port 5000 is in use`**
+
+A previous instance is still running. Stop the service first:
 ```bash
-sudo apt install -y avahi-daemon
+sudo systemctl stop pixel-pi
 ```
 
 ---
@@ -452,15 +459,4 @@ sudo apt install -y avahi-daemon
 
 ```bash
 sed -i '' '/pixel-pi/d' ~/.ssh/known_hosts
-```
-
----
-
-**HTTP not reachable from digipi**
-
-Confirm `HTTP_HOST = "0.0.0.0"` in config.py. Check firewall:
-```bash
-sudo ufw status
-# if active:
-sudo ufw allow 5000/tcp
 ```
