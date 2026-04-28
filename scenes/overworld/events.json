@@ -1,0 +1,57 @@
+{
+  "signup": {
+    "description": "New user signed up",
+    "sequence": [
+      { "action": "pause_ambient" },
+      { "action": "play_sprite", "sprite": "effects/traveler_arrive.png", "x": 200, "y": 90, "frames": 8, "fps": 10 },
+      { "action": "flash_text", "text": "New arrival!", "duration_ms": 1200 },
+      { "action": "resume_ambient" }
+    ]
+  },
+  "sale": {
+    "description": "Revenue event / sale completed",
+    "sequence": [
+      { "action": "pause_ambient" },
+      { "action": "play_sprite", "sprite": "effects/chest_open.png", "x": 110, "y": 95, "frames": 6, "fps": 8 },
+      { "action": "play_sprite", "sprite": "effects/coins_arc.png", "x": 110, "y": 80, "frames": 10, "fps": 12 },
+      { "action": "flash_text", "text": "Sale!", "duration_ms": 1000 },
+      { "action": "resume_ambient" }
+    ]
+  },
+  "error": {
+    "description": "Application error / exception",
+    "sequence": [
+      { "action": "screen_flash", "color": [255, 80, 0], "duration_ms": 80 },
+      { "action": "play_sprite", "sprite": "effects/comet.png", "x": 120, "y": 0, "frames": 12, "fps": 15 },
+      { "action": "play_sprite", "sprite": "effects/impact_smoke.png", "x": 100, "y": 110, "frames": 8, "fps": 10 },
+      { "action": "screen_shake", "intensity": 3, "duration_ms": 400 },
+      { "action": "resume_ambient" }
+    ]
+  },
+  "deploy": {
+    "description": "New deployment / release",
+    "sequence": [
+      { "action": "pause_ambient" },
+      { "action": "play_sprite", "sprite": "effects/ship_launch.png", "x": 60, "y": 80, "frames": 14, "fps": 10 },
+      { "action": "flash_text", "text": "Deployed!", "duration_ms": 1200 },
+      { "action": "resume_ambient" }
+    ]
+  },
+  "milestone": {
+    "description": "KPI milestone hit",
+    "sequence": [
+      { "action": "screen_flash", "color": [255, 255, 180], "duration_ms": 120 },
+      { "action": "play_sprite", "sprite": "effects/fireworks.png", "x": 120, "y": 20, "frames": 20, "fps": 12 },
+      { "action": "flash_text", "text": "Milestone!", "duration_ms": 2000 },
+      { "action": "resume_ambient" }
+    ]
+  },
+  "churn": {
+    "description": "Customer cancelled",
+    "sequence": [
+      { "action": "pause_ambient" },
+      { "action": "play_sprite", "sprite": "effects/character_leave.png", "x": 120, "y": 90, "frames": 10, "fps": 8 },
+      { "action": "resume_ambient" }
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "background": "assets/backgrounds/overworld_bg.png",
+  "layers": [
+    {
+      "id": "clouds",
+      "type": "scroll",
+      "sprite": "assets/sprites/environment/clouds.png",
+      "scroll_speed": 0.2,
+      "y": 10
+    },
+    {
+      "id": "npc_traveler",
+      "type": "character",
+      "sprite": "assets/sprites/characters/traveler.png",
+      "frame_size": [16, 24],
+      "idle_frames": [0, 1, 2, 1],
+      "walk_frames": [3, 4, 5, 4],
+      "waypoints": [[20, 100], [180, 100]],
+      "walk_speed": 0.5,
+      "anim_fps": 6
+    }
+  ]
+}
