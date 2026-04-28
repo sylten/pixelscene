@@ -6,8 +6,8 @@ DISPLAY_HEIGHT = 320
 SCALE = 2
 TARGET_FPS = 12
 
-# Display driver — "sdl" for desktop/development, "fbcp" for Waveshare SPI on Pi
-DISPLAY_DRIVER = "sdl"
+# Display driver — "fbcp" for Waveshare SPI on Pi, "sdl" for desktop development
+DISPLAY_DRIVER = "fbcp"
 FRAMEBUFFER = "/dev/fb1"
 
 # Server
