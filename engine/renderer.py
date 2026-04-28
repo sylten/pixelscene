@@ -1,5 +1,4 @@
 import logging
-import mmap
 import os
 import queue
 import random
@@ -9,6 +8,7 @@ import pygame
 
 import config
 from engine.animation import SpriteAnimation
+from engine.display import Display
 from engine.queue_handler import QueueHandler
 from engine.scene import Scene
 
@@ -20,6 +20,7 @@ class Renderer:
         self._event_queue = event_queue
         self._scene: Optional[Scene] = None
         self._queue_handler: Optional[QueueHandler] = None
+        self._display: Optional[Display] = None
 
         # Sequence state
         self._processing_sequence = False
@@ -47,51 +48,20 @@ class Renderer:
         self._tint_timer = 0.0
         self._tint_duration = 0.0
 
-        # pygame surfaces / objects
+        # Surfaces and timing — allocated in _init_display
         self._render_surface: Optional[pygame.Surface] = None
-        self._display_surface: Optional[pygame.Surface] = None
+        self._scaled_surface: Optional[pygame.Surface] = None
         self._font: Optional[pygame.font.Font] = None
         self._clock: Optional[pygame.time.Clock] = None
-
-        # Framebuffer resources (fb mode only)
-        self._fb_file = None
-        self._fb_map: Optional[mmap.mmap] = None
 
     # ------------------------------------------------------------------
     # Startup
     # ------------------------------------------------------------------
 
     def _init_display(self):
-        pygame.init()
-        pygame.font.init()
-
-        if config.DISPLAY_DRIVER == "fb":
-            # Direct framebuffer — no SDL display window.
-            # pygame draws to an offscreen Surface; we mmap-write frames to /dev/fb0.
-            # This is required on Bookworm where SDL 2 ships without fbcon support.
-            self._display_surface = pygame.Surface(
-                (config.DISPLAY_WIDTH, config.DISPLAY_HEIGHT)
-            )
-            fb_bytes = config.DISPLAY_WIDTH * config.DISPLAY_HEIGHT * 4
-            self._fb_file = open(config.FRAMEBUFFER, "rb+")
-            self._fb_map = mmap.mmap(
-                self._fb_file.fileno(),
-                fb_bytes,
-                mmap.MAP_SHARED,
-                mmap.PROT_READ | mmap.PROT_WRITE,
-            )
-            logger.info("Framebuffer opened: %s (%d bytes)", config.FRAMEBUFFER, fb_bytes)
-
-        elif config.DISPLAY_DRIVER == "sdl":
-            self._display_surface = pygame.display.set_mode(
-                (config.DISPLAY_WIDTH, config.DISPLAY_HEIGHT)
-            )
-            pygame.display.set_caption("pixel-pi")
-
-        else:
-            raise ValueError(f"Unknown DISPLAY_DRIVER: {config.DISPLAY_DRIVER!r}. Use 'fb' or 'sdl'.")
-
+        self._display = Display()  # calls pygame.init() internally
         self._render_surface = pygame.Surface((config.RENDER_WIDTH, config.RENDER_HEIGHT))
+        self._scaled_surface = pygame.Surface((config.DISPLAY_WIDTH, config.DISPLAY_HEIGHT))
         self._clock = pygame.time.Clock()
         self._font = pygame.font.Font(None, 16)
 
@@ -110,10 +80,8 @@ class Renderer:
         try:
             self._loop()
         finally:
-            if self._fb_map:
-                self._fb_map.close()
-            if self._fb_file:
-                self._fb_file.close()
+            if self._display:
+                self._display.close()
             pygame.quit()
 
     def _loop(self):
@@ -282,7 +250,7 @@ class Renderer:
     # ------------------------------------------------------------------
 
     def _draw(self):
-        if not self._render_surface or not self._display_surface:
+        if not self._render_surface or not self._display:
             return
 
         if self._scene:
@@ -319,21 +287,21 @@ class Renderer:
             self._render_surface.blit(backing, (tx - 3, ty - 2))
             self._render_surface.blit(text_surf, (tx, ty))
 
-        scaled = pygame.transform.scale(
-            self._render_surface, (config.DISPLAY_WIDTH, config.DISPLAY_HEIGHT)
+        # Scale to display resolution in-place (no allocation per frame)
+        pygame.transform.scale(
+            self._render_surface,
+            (config.DISPLAY_WIDTH, config.DISPLAY_HEIGHT),
+            self._scaled_surface,
         )
 
+        # Screen shake shifts the scaled output on the display surface
         shake_x, shake_y = 0, 0
         if self._shake_intensity > 0:
             shake_x = random.randint(-self._shake_intensity, self._shake_intensity)
             shake_y = random.randint(-self._shake_intensity, self._shake_intensity)
 
-        self._display_surface.fill((0, 0, 0))
-        self._display_surface.blit(scaled, (shake_x * config.SCALE, shake_y * config.SCALE))
-
-        if config.DISPLAY_DRIVER == "fb":
-            raw = pygame.image.tostring(self._display_surface, "RGBX")
-            self._fb_map.seek(0)
-            self._fb_map.write(raw)
-        else:
-            pygame.display.flip()
+        self._display.screen.fill((0, 0, 0))
+        self._display.screen.blit(
+            self._scaled_surface, (shake_x * config.SCALE, shake_y * config.SCALE)
+        )
+        self._display.flip()
