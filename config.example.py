@@ -6,9 +6,11 @@ DISPLAY_HEIGHT = 320
 SCALE = 2
 TARGET_FPS = 12
 
-# Display driver — "fbcp" for Waveshare SPI on Pi, "sdl" for desktop development
-DISPLAY_DRIVER = "fbcp"
-FRAMEBUFFER = "/dev/fb1"
+# Display driver
+#   "fb"  — direct framebuffer via mmap (Raspberry Pi / Bookworm, no SDL display required)
+#   "sdl" — pygame window (desktop development)
+DISPLAY_DRIVER = "fb"
+FRAMEBUFFER = "/dev/fb0"
 
 # Server
 HTTP_PORT = 5000
