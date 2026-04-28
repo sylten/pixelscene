@@ -22,6 +22,7 @@ class Display:
             self._flip = self._flip_sdl
 
         elif config.DISPLAY_DRIVER == "fb":
+            pygame.display.set_mode((1, 1), pygame.NOFRAME)
             self.screen = pygame.Surface(
                 (config.DISPLAY_WIDTH, config.DISPLAY_HEIGHT)
             )
