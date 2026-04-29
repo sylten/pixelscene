@@ -66,6 +66,12 @@
       "type": "static",
       "sprite_key": "FOREGROUND_VEG",
       "x": 0, "y": 130
+    },
+    {
+      "id": "canopy",
+      "type": "static",
+      "sprite_key": "CANOPY",
+      "x": 0, "y": 0
     }
   ]
 }
