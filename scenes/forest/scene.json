@@ -36,8 +36,7 @@
       "id": "giant_tree",
       "type": "static",
       "sprite_key": "GIANT_TREE",
-      "x": 135, "y": 18,
-      "sway": true
+      "x": 135, "y": 18
     },
     {
       "id": "ground",
