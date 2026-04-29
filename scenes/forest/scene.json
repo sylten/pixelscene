@@ -1,7 +1,13 @@
 {
   "id": "forest",
-  "background_color": [55, 115, 185],
+  "background_color": [55, 116, 185],
   "layers": [
+    {
+      "id": "sky",
+      "type": "static",
+      "sprite_key": "SKY",
+      "x": 0, "y": 0
+    },
     {
       "id": "clouds",
       "type": "scroll",
