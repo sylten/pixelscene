@@ -10,14 +10,43 @@ import pygame
 
 def make_surface(pixel_array, palette, frame_width, frame_height):
     num_frames = len(pixel_array) // (frame_width * frame_height)
-    surface = pygame.Surface((frame_width * num_frames, frame_height), pygame.SRCALPHA)
+    total_w = frame_width * num_frames
+
+    try:
+        import numpy as np
+        max_idx = max(palette.keys()) + 1
+        lut = np.zeros((max_idx, 4), dtype=np.uint8)
+        for i, rgba in palette.items():
+            lut[i] = rgba
+        arr = np.array(pixel_array, dtype=np.int32).reshape(num_frames, frame_height, frame_width)
+        out = np.zeros((frame_height, total_w), dtype=np.int32)
+        for f in range(num_frames):
+            out[:, f * frame_width:(f + 1) * frame_width] = arr[f]
+        rgba = lut[out]  # (H, W, 4)
+        surface = pygame.Surface((total_w, frame_height), pygame.SRCALPHA)
+        px = pygame.surfarray.pixels3d(surface)
+        pa = pygame.surfarray.pixels_alpha(surface)
+        px[:] = rgba[:, :, :3].transpose(1, 0, 2)
+        pa[:] = rgba[:, :, 3].T
+        del px, pa
+        return surface
+    except Exception:
+        pass
+
+    # Pure-Python fallback: bytearray + frombuffer (faster than set_at)
+    max_idx = max(palette.keys()) + 1
+    pal = [bytes(palette.get(i, (0, 0, 0, 0))) for i in range(max_idx)]
+    buf = bytearray(total_w * frame_height * 4)
+    stride = total_w * 4
     for f in range(num_frames):
+        frame_base = f * frame_width * frame_height
+        col_off = f * frame_width * 4
         for y in range(frame_height):
+            row_off = y * stride + col_off
+            row_base = frame_base + y * frame_width
             for x in range(frame_width):
-                idx = pixel_array[f * frame_width * frame_height + y * frame_width + x]
-                if idx != 0:
-                    surface.set_at((f * frame_width + x, y), palette[idx])
-    return surface
+                buf[row_off + x * 4: row_off + x * 4 + 4] = pal[pixel_array[row_base + x]]
+    return pygame.image.frombuffer(bytes(buf), (total_w, frame_height), 'RGBA')
 
 
 # ── Palette (64 colors extracted from reference image) ───────────

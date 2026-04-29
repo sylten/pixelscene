@@ -9,5 +9,10 @@ git pull
 echo "Restarting service..."
 sudo systemctl restart pixel-pi
 
-echo "Done. Logs:"
-journalctl -u pixel-pi -n 20 --no-pager
+echo ""
+echo "=== pixel-pi logs ==="
+journalctl -u pixel-pi -n 30 --no-pager
+
+echo ""
+echo "=== fbcp status ==="
+sudo systemctl status fbcp --no-pager || true
