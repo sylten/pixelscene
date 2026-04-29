@@ -305,14 +305,14 @@ source venv/bin/activate
 python3 main.py
 ```
 
-The display should show the overworld scene. From your Mac:
+The display should show the scene. From your Mac:
 
 ```bash
 curl http://pixel-pi.local:5000/health
 
 curl -X POST http://pixel-pi.local:5000/event \
   -H "Content-Type: application/json" \
-  -d '{"event": "sale"}'
+  -d '{"event": "milestone"}'
 ```
 
 `Ctrl+C` when done.
@@ -344,13 +344,13 @@ sudo systemctl start pixel-pi
 journalctl -u pixel-pi -f
 ```
 
-The scene should appear on the display. Reboot to confirm autostart:
+The display should show the scene on boot. Reboot to confirm autostart:
 
 ```bash
 sudo reboot
 ```
 
-After boot the scene should appear automatically without any SSH intervention.
+After boot the display should activate automatically without any SSH intervention.
 
 > **Note on network:** The service has no network dependency intentionally. The HTTP server will fail to bind if the network isn't up yet, but the display and animations will still work. Flask will retry on the next restart cycle.
 

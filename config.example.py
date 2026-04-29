@@ -17,7 +17,7 @@ HTTP_PORT = 5000
 HTTP_HOST = "0.0.0.0"
 
 # Scene
-DEFAULT_SCENE = "overworld"
+DEFAULT_SCENE = "forest"
 
 # Logging
 LOG_LEVEL = "INFO"

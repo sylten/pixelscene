@@ -1,0 +1,71 @@
+{
+  "id": "forest",
+  "background_color": [28, 80, 160],
+  "layers": [
+    {
+      "id": "sky",
+      "type": "static",
+      "sprite_key": "SKY",
+      "x": 0, "y": 0
+    },
+    {
+      "id": "clouds",
+      "type": "static",
+      "sprite_key": "CLOUDS",
+      "x": 0, "y": 0
+    },
+    {
+      "id": "mountains",
+      "type": "static",
+      "sprite_key": "MOUNTAINS",
+      "x": 0, "y": 22
+    },
+    {
+      "id": "lake",
+      "type": "static",
+      "sprite_key": "LAKE",
+      "x": 28, "y": 58
+    },
+    {
+      "id": "mid_vegetation",
+      "type": "static",
+      "sprite_key": "MID_VEGETATION",
+      "x": 0, "y": 65
+    },
+    {
+      "id": "giant_tree",
+      "type": "static",
+      "sprite_key": "GIANT_TREE",
+      "x": 135, "y": 18,
+      "sway": true
+    },
+    {
+      "id": "ground",
+      "type": "static",
+      "sprite_key": "GROUND",
+      "x": 0, "y": 105
+    },
+    {
+      "id": "firefly_1",
+      "type": "firefly",
+      "sprite_key": "FIREFLY",
+      "fps": 2,
+      "x": 45, "y": 85,
+      "drift": {"x": 6, "y": 3, "period": 6.0, "phase": 0.0}
+    },
+    {
+      "id": "firefly_2",
+      "type": "firefly",
+      "sprite_key": "FIREFLY",
+      "fps": 2,
+      "x": 95, "y": 78,
+      "drift": {"x": 8, "y": 4, "period": 8.0, "phase": 3.1}
+    },
+    {
+      "id": "foreground_veg",
+      "type": "static",
+      "sprite_key": "FOREGROUND_VEG",
+      "x": 0, "y": 130
+    }
+  ]
+}
