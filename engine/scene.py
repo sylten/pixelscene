@@ -114,7 +114,7 @@ class Layer:
 
         if t == "scroll":
             w = self.surface.get_width()
-            x = int(-self._scroll_offset % w)
+            x = int(-(self._scroll_offset % w))
             while x < config.RENDER_WIDTH:
                 surface.blit(self.surface, (x, int(self._def.get("y", 0))))
                 x += w

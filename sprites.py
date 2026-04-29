@@ -1012,3 +1012,10 @@ _patch_rows(GROUND, GROUND_W, 28, 0, [
     [ 9, 9, 9,19,19,19,19,19,19,19,19,19,28,28,28,28,28,28,28,28,34,41,52,41,41,41,41,41,41],
     [ 9, 9, 9,19,19,19,19,19,19,19,19,19,19,19,19,28,28,28,28,28,32,41,41,39,41,41,41,41,41],
 ])
+
+# ── Crop CLOUDS to sky-only rows so mountain/tree pixels don't scroll ─
+# Rows y≥18 contain baked-in mountain and tree-top colors from the
+# composited reference. Zero them so only actual cloud shapes scroll.
+_sky_cutoff = 18
+for _cy in range(_sky_cutoff, CLOUDS_H):
+    CLOUDS[_cy * CLOUDS_W:(_cy + 1) * CLOUDS_W] = [0] * CLOUDS_W
