@@ -7,6 +7,6 @@ echo "→ Copying config.py from main repo..."
 cp "$MAIN_REPO/config.py" ./config.py
 
 echo "→ Installing dependencies..."
-pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 
 echo "✓ Worktree ready!"
