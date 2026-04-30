@@ -1,6 +1,7 @@
 import logging
 import mmap
 
+import numpy as np
 import pygame
 
 import config
@@ -35,6 +36,7 @@ class Display:
                 mmap.PROT_READ | mmap.PROT_WRITE,
             )
             logger.info("Framebuffer opened: %s (%d bytes)", config.FRAMEBUFFER, fb_bytes)
+            self._fill_fb_sky()
             self._flip = self._flip_fb
 
         else:
@@ -45,13 +47,27 @@ class Display:
     def flip(self):
         self._flip()
 
+    def _fill_fb_sky(self):
+        n = config.DISPLAY_WIDTH * config.DISPLAY_HEIGHT
+        sky = np.zeros((n, 4), dtype=np.uint8)
+        sky[:, 0] = 185  # B  (scene sky ≈ RGB 55,116,185)
+        sky[:, 1] = 116  # G
+        sky[:, 2] = 55   # R
+        self._fb_map.seek(0)
+        self._fb_map.write(sky.tobytes())
+
     def _flip_sdl(self):
         pygame.display.flip()
 
     def _flip_fb(self):
-        raw = pygame.image.tostring(self.screen, "RGBX")
+        raw = pygame.image.tostring(self.screen, 'RGB')
+        arr = np.frombuffer(raw, dtype=np.uint8).reshape(-1, 3)
+        bgr = np.zeros((arr.shape[0], 4), dtype=np.uint8)
+        bgr[:, 0] = arr[:, 2]  # B
+        bgr[:, 1] = arr[:, 1]  # G
+        bgr[:, 2] = arr[:, 0]  # R
         self._fb_map.seek(0)
-        self._fb_map.write(raw)
+        self._fb_map.write(bgr.tobytes())
 
     def close(self):
         if hasattr(self, "_fb_map"):
