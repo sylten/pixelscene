@@ -14,6 +14,7 @@ class Display:
 
     def __init__(self):
         pygame.init()
+        pygame.mouse.set_visible(False)
 
         if config.DISPLAY_DRIVER == "sdl":
             self.screen = pygame.display.set_mode(
