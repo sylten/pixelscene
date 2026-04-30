@@ -12,6 +12,7 @@ python3 -m venv .venv
 echo "→ Installing dependencies..."
 .venv/bin/pip install -r requirements.txt
 
+echo "→ Activating virtual environment..."
+source .venv/bin/activate
+
 echo "✓ Worktree ready!"
-echo ""
-echo "  Activate with: source .venv/bin/activate"
