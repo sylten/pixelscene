@@ -16,3 +16,5 @@ echo "→ Activating virtual environment..."
 source .venv/bin/activate
 
 echo "✓ Worktree ready!"
+echo ""
+echo "  To activate the venv in your shell: source .venv/bin/activate"
