@@ -2,6 +2,7 @@ import json
 import logging
 import math
 import os
+import random
 from typing import Any, Dict, List, Optional
 
 import pygame
@@ -29,6 +30,11 @@ class Layer:
         # Shared scene elapsed time reference (set by Scene.update)
         self._elapsed = elapsed
 
+        # car_lane state
+        self._car_surfaces: List[pygame.Surface] = []
+        self._active_cars: List[List] = []  # [x, surface]
+        self._spawn_timer = random.uniform(5, 20)  # first car arrives soon
+
         self._load_surface()
 
     def _load_surface(self):
@@ -40,19 +46,24 @@ class Layer:
                 self.surface = get_surface(key)
             except Exception as e:
                 logger.warning("Layer %s: could not load sprite_key %s: %s", self.id, key, e)
-            return
-
-        path = self._def.get("sprite")
-        if path and os.path.exists(path):
-            try:
-                self.surface = pygame.image.load(path).convert_alpha()
-            except Exception as e:
-                logger.warning("Layer %s: could not load %s: %s", self.id, path, e)
+        else:
+            path = self._def.get("sprite")
+            if path and os.path.exists(path):
+                try:
+                    self.surface = pygame.image.load(path).convert_alpha()
+                except Exception as e:
+                    logger.warning("Layer %s: could not load %s: %s", self.id, path, e)
 
         if self.layer_type == "character":
             waypoints = self._def.get("waypoints", [])
             if waypoints:
                 self._walk_pos = list(map(float, waypoints[0]))
+
+        if self.layer_type == "car_lane" and self.surface is not None:
+            for rect_def in self._def.get("car_rects", []):
+                rx, ry, rw, rh = rect_def
+                sub = self.surface.subsurface(pygame.Rect(rx, ry, rw, rh)).copy()
+                self._car_surfaces.append(sub)
 
     # ------------------------------------------------------------------
     def update(self, dt: float, paused: bool, elapsed: float):
@@ -67,6 +78,28 @@ class Layer:
             self._scroll_offset += speed * dt * config.TARGET_FPS
             if self.surface:
                 self._scroll_offset %= self.surface.get_width()
+
+        elif t == "car_lane":
+            speed = self._def.get("scroll_speed", 2.5)
+            move = speed * dt * config.TARGET_FPS
+
+            for car in self._active_cars:
+                car[0] -= move
+            self._active_cars = [c for c in self._active_cars if c[0] > -200]
+
+            self._spawn_timer -= dt
+            if self._spawn_timer <= 0:
+                spawn_min = self._def.get("spawn_min", 60)
+                spawn_max = self._def.get("spawn_max", 300)
+                self._spawn_timer = random.uniform(spawn_min, spawn_max)
+
+                if self._car_surfaces:
+                    count = random.choices([0, 1, 2], weights=[1, 3, 1])[0]
+                    for i in range(count):
+                        surf = random.choice(self._car_surfaces)
+                        gap = surf.get_width() + random.randint(8, 20)
+                        x = float(config.RENDER_WIDTH + i * gap)
+                        self._active_cars.append([x, surf])
 
         elif t in ("sprite", "character", "animated", "firefly"):
             fps = self._def.get("fps", self._def.get("anim_fps", 8))
@@ -127,6 +160,11 @@ class Layer:
             while x < config.RENDER_WIDTH:
                 surface.blit(self.surface, (x, int(self._def.get("y", 0))))
                 x += w
+
+        elif t == "car_lane":
+            y = int(self._def.get("y", 0))
+            for car in self._active_cars:
+                surface.blit(car[1], (int(car[0]), y))
 
         elif t == "character" and self._walk_pos is not None:
             frame_size = self._def.get("frame_size", [16, 24])

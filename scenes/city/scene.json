@@ -65,10 +65,13 @@
     },
     {
       "id": "cars",
-      "type": "scroll",
+      "type": "car_lane",
       "sprite_key": "CITY_CARS_STRIP",
+      "car_rects": [[0, 0, 64, 32], [81, 0, 47, 32], [160, 0, 64, 32], [260, 0, 48, 32]],
       "scroll_speed": 2.5,
-      "y": 128
+      "y": 128,
+      "spawn_min": 60,
+      "spawn_max": 300
     }
   ]
 }
