@@ -1,0 +1,24 @@
+{
+  "night_fall": {
+    "sequence": [
+      {"action": "set_tint", "color": [10, 10, 50], "alpha": 120},
+      {"action": "set_layer_frame", "layer": "building_red",        "frame": 1},
+      {"action": "set_layer_frame", "layer": "building_skyscraper", "frame": 1},
+      {"action": "set_layer_frame", "layer": "building_blue",       "frame": 1},
+      {"action": "set_layer_frame", "layer": "building_bar",        "frame": 1},
+      {"action": "set_layer_frame", "layer": "lamp_left",           "frame": 1},
+      {"action": "set_layer_frame", "layer": "lamp_right",          "frame": 1}
+    ]
+  },
+  "sunrise": {
+    "sequence": [
+      {"action": "clear_tint"},
+      {"action": "set_layer_frame", "layer": "building_red",        "frame": 0},
+      {"action": "set_layer_frame", "layer": "building_skyscraper", "frame": 0},
+      {"action": "set_layer_frame", "layer": "building_blue",       "frame": 0},
+      {"action": "set_layer_frame", "layer": "building_bar",        "frame": 0},
+      {"action": "set_layer_frame", "layer": "lamp_left",           "frame": 0},
+      {"action": "set_layer_frame", "layer": "lamp_right",          "frame": 0}
+    ]
+  }
+}

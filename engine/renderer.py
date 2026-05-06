@@ -283,6 +283,20 @@ class Renderer:
             self._tint_duration = 0.0
             return True
 
+        elif kind == "clear_tint":
+            self._tint_color = None
+            self._tint_duration = 0.0
+            return True
+
+        elif kind == "set_layer_frame":
+            if self._scene:
+                layer = self._scene.get_layer(action.get("layer", ""))
+                if layer:
+                    layer.set_frame(action.get("frame", 0))
+                else:
+                    logger.warning("set_layer_frame: layer '%s' not found", action.get("layer"))
+            return True
+
         else:
             logger.warning("Unknown action type: %s", kind)
             return True

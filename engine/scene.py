@@ -22,6 +22,7 @@ class Layer:
         self._scroll_offset = 0.0
         self._frame_index = 0
         self._frame_elapsed = 0.0
+        self._frame_locked = False  # set by set_frame() to prevent auto-advance
         self._walk_pos: Optional[List[float]] = None
         self._waypoint_index = 0
 
@@ -69,26 +70,34 @@ class Layer:
 
         elif t in ("sprite", "character", "animated", "firefly"):
             fps = self._def.get("fps", self._def.get("anim_fps", 8))
-            self._frame_elapsed += dt
-            if self._frame_elapsed >= 1.0 / max(fps, 1):
-                self._frame_elapsed = 0.0
-                if t == "animated":
-                    import sprites as sp
-                    key = self._def.get("sprite_key", "")
-                    frames = getattr(sp, f"{key}_FRAMES", 1)
-                    self._frame_index = (self._frame_index + 1) % frames
-                elif t == "firefly":
-                    import sprites as sp
-                    key = self._def.get("sprite_key", "")
-                    frames = getattr(sp, f"{key}_FRAMES", 1)
-                    self._frame_index = (self._frame_index + 1) % frames
-                else:
-                    idle_frames = self._def.get("idle_frames", [0])
-                    self._frame_index = (self._frame_index + 1) % len(idle_frames)
+            if fps > 0 and not self._frame_locked:
+                self._frame_elapsed += dt
+                if self._frame_elapsed >= 1.0 / fps:
+                    self._frame_elapsed = 0.0
+                    if t == "animated":
+                        import sprites as sp
+                        key = self._def.get("sprite_key", "")
+                        frames = getattr(sp, f"{key}_FRAMES", 1)
+                        self._frame_index = (self._frame_index + 1) % frames
+                    elif t == "firefly":
+                        import sprites as sp
+                        key = self._def.get("sprite_key", "")
+                        frames = getattr(sp, f"{key}_FRAMES", 1)
+                        self._frame_index = (self._frame_index + 1) % frames
+                    else:
+                        idle_frames = self._def.get("idle_frames", [0])
+                        self._frame_index = (self._frame_index + 1) % len(idle_frames)
 
             if t == "character":
                 self._update_walk(dt)
 
+    def set_frame(self, frame_idx: int):
+        """Lock this layer to a specific frame index (used by set_layer_frame events)."""
+        self._frame_index = frame_idx
+        self._frame_locked = True
+        self._frame_elapsed = 0.0
+
+    # ------------------------------------------------------------------
     def _update_walk(self, dt: float):
         waypoints = self._def.get("waypoints", [])
         if len(waypoints) < 2 or self._walk_pos is None:
@@ -245,6 +254,12 @@ class Scene:
             surface.fill(self.background_color)
         for layer in self.layers:
             layer.draw(surface)
+
+    def get_layer(self, layer_id: str) -> Optional["Layer"]:
+        for layer in self.layers:
+            if layer.id == layer_id:
+                return layer
+        return None
 
     def pause_layers(self, layer_ids: List[str]):
         self.ambient_paused = True

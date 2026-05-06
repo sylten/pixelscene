@@ -1,0 +1,74 @@
+{
+  "id": "city",
+  "background_color": [18, 32, 85],
+  "layers": [
+    {
+      "id": "sky",
+      "type": "static",
+      "sprite_key": "CITY_SKY",
+      "x": 0, "y": 0
+    },
+    {
+      "id": "clouds",
+      "type": "scroll",
+      "sprite_key": "CITY_CLOUDS",
+      "scroll_speed": 0.3,
+      "y": 4
+    },
+    {
+      "id": "building_red",
+      "type": "animated",
+      "sprite_key": "CITY_BUILDING_RED",
+      "fps": 0,
+      "x": 0, "y": 34
+    },
+    {
+      "id": "building_skyscraper",
+      "type": "animated",
+      "sprite_key": "CITY_BUILDING_SKYSCRAPER",
+      "fps": 0,
+      "x": 48, "y": 34
+    },
+    {
+      "id": "building_blue",
+      "type": "animated",
+      "sprite_key": "CITY_BUILDING_BLUE",
+      "fps": 0,
+      "x": 128, "y": 34
+    },
+    {
+      "id": "building_bar",
+      "type": "animated",
+      "sprite_key": "CITY_BUILDING_BAR",
+      "fps": 0,
+      "x": 176, "y": 76
+    },
+    {
+      "id": "lamp_left",
+      "type": "animated",
+      "sprite_key": "CITY_LAMP_GLOBE_WIDE",
+      "fps": 0,
+      "x": 40, "y": 99
+    },
+    {
+      "id": "lamp_right",
+      "type": "animated",
+      "sprite_key": "CITY_LAMP_CORNER",
+      "fps": 0,
+      "x": 118, "y": 98
+    },
+    {
+      "id": "road",
+      "type": "static",
+      "sprite_key": "CITY_ROAD",
+      "x": 0, "y": 130
+    },
+    {
+      "id": "cars",
+      "type": "scroll",
+      "sprite_key": "CITY_CARS_STRIP",
+      "scroll_speed": 2.5,
+      "y": 128
+    }
+  ]
+}
