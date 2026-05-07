@@ -35,6 +35,16 @@ class Layer:
         self._active_cars: List[List] = []  # [x, surface]
         self._spawn_timer = random.uniform(5, 20)  # first car arrives soon
 
+        # Cat animation state
+        self._cat_surfaces: Dict[str, Any] = {}
+        self._cat_fps: Dict[str, int] = {}
+        self._cat_frame_w = 32
+        self._cat_frame_h = 32
+        self._cat_state = "idle"
+        self._cat_idle_timer = 0.0
+        self._cat_idle_duration = 0.0
+        self._cat_facing_right = True
+
         self._load_surface()
 
     def _load_surface(self):
@@ -59,11 +69,43 @@ class Layer:
             if waypoints:
                 self._walk_pos = list(map(float, waypoints[0]))
 
+        if self.layer_type == "cat":
+            self._cat_load()
+
         if self.layer_type == "car_lane" and self.surface is not None:
             for rect_def in self._def.get("car_rects", []):
                 rx, ry, rw, rh = rect_def
                 sub = self.surface.subsurface(pygame.Rect(rx, ry, rw, rh)).copy()
                 self._car_surfaces.append(sub)
+
+    def _cat_load(self):
+        scale = self._def.get("scale", 0.5)
+        self._cat_frame_w = int(64 * scale)
+        self._cat_frame_h = int(64 * scale)
+
+        for state, key in [("idle", "idle_sprite"), ("walk", "walk_sprite")]:
+            path = self._def.get(key)
+            if path and os.path.exists(path):
+                try:
+                    try:
+                        raw = pygame.image.load(path).convert_alpha()
+                    except Exception:
+                        from PIL import Image as _PILImage
+                        pil = _PILImage.open(path).convert("RGBA")
+                        raw = pygame.image.frombuffer(pil.tobytes(), pil.size, "RGBA").copy()
+                    w, h = raw.get_size()
+                    scaled = pygame.transform.scale(raw, (int(w * scale), int(h * scale)))
+                    self._cat_surfaces[state] = scaled
+                    self._cat_fps[state] = self._def.get(f"{state}_fps", 10)
+                except Exception as e:
+                    logger.warning("Cat: could not load %s: %s", path, e)
+
+        waypoints = self._def.get("waypoints", [])
+        if waypoints:
+            self._walk_pos = list(map(float, waypoints[0]))
+            self._waypoint_index = 1 % len(waypoints)
+
+        self._cat_idle_duration = random.uniform(1.0, 3.0)
 
     # ------------------------------------------------------------------
     def update(self, dt: float, paused: bool, elapsed: float):
@@ -101,6 +143,10 @@ class Layer:
                         x = float(config.RENDER_WIDTH + i * gap)
                         self._active_cars.append([x, surf])
 
+        elif t == "cat":
+            self._cat_update(dt)
+            return
+
         elif t in ("sprite", "character", "animated", "firefly"):
             fps = self._def.get("fps", self._def.get("anim_fps", 8))
             if fps > 0 and not self._frame_locked:
@@ -123,6 +169,52 @@ class Layer:
 
             if t == "character":
                 self._update_walk(dt)
+
+    def _cat_update(self, dt: float):
+        fps = self._cat_fps.get(self._cat_state, 10)
+        if fps > 0:
+            self._frame_elapsed += dt
+            if self._frame_elapsed >= 1.0 / fps:
+                self._frame_elapsed = 0.0
+                surf = self._cat_surfaces.get(self._cat_state)
+                if surf and self._cat_frame_w > 0:
+                    frames = surf.get_width() // self._cat_frame_w
+                    self._frame_index = (self._frame_index + 1) % max(1, frames)
+
+        waypoints = self._def.get("waypoints", [])
+
+        if self._cat_state == "idle":
+            self._cat_idle_timer += dt
+            if self._cat_idle_timer >= self._cat_idle_duration and len(waypoints) >= 2:
+                self._cat_state = "walk"
+                self._frame_index = 0
+                self._frame_elapsed = 0.0
+
+        elif self._cat_state == "walk":
+            if not waypoints or self._walk_pos is None:
+                return
+            target = waypoints[self._waypoint_index % len(waypoints)]
+            dx = float(target[0]) - self._walk_pos[0]
+            dy = float(target[1]) - self._walk_pos[1]
+            dist = math.hypot(dx, dy)
+            speed = self._def.get("walk_speed", 1.2)
+
+            if dx != 0:
+                self._cat_facing_right = dx > 0
+
+            if dist < 1.0:
+                self._walk_pos[0] = float(target[0])
+                self._walk_pos[1] = float(target[1])
+                self._waypoint_index = (self._waypoint_index + 1) % len(waypoints)
+                self._cat_state = "idle"
+                self._cat_idle_timer = 0.0
+                self._cat_idle_duration = random.uniform(2.0, 6.0)
+                self._frame_index = 0
+                self._frame_elapsed = 0.0
+            else:
+                move = speed * dt * config.TARGET_FPS
+                self._walk_pos[0] += (dx / dist) * move
+                self._walk_pos[1] += (dy / dist) * move
 
     def set_frame(self, frame_idx: int):
         """Lock this layer to a specific frame index (used by set_layer_frame events)."""
@@ -194,6 +286,17 @@ class Layer:
                 surface.blit(frame_surf, (x, y))
             else:
                 surface.blit(self.surface, (x, y), src)
+
+        elif t == "cat" and self._walk_pos is not None:
+            surf = self._cat_surfaces.get(self._cat_state)
+            if surf and self._cat_frame_w > 0:
+                fw = self._cat_frame_w
+                fh = self._cat_frame_h
+                fi = self._frame_index % max(1, surf.get_width() // fw)
+                frame_surf = surf.subsurface(pygame.Rect(fi * fw, 0, fw, fh)).copy()
+                if not self._cat_facing_right:
+                    frame_surf = pygame.transform.flip(frame_surf, True, False)
+                surface.blit(frame_surf, (int(self._walk_pos[0]), int(self._walk_pos[1])))
 
         elif t == "firefly":
             import sprites as sp

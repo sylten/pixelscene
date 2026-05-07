@@ -119,6 +119,17 @@
       "y": 128,
       "spawn_min": 60,
       "spawn_max": 300
+    },
+    {
+      "id": "cat",
+      "type": "cat",
+      "idle_sprite": "references/FREE_Cat 2D Pixel Art/Sprites/IDLE.png",
+      "walk_sprite": "references/FREE_Cat 2D Pixel Art/Sprites/WALK.png",
+      "scale": 0.5,
+      "idle_fps": 10,
+      "walk_fps": 15,
+      "walk_speed": 1.2,
+      "waypoints": [[5, 100], [195, 100]]
     }
   ]
 }
