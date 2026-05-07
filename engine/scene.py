@@ -241,10 +241,22 @@ class Layer:
 
     # ------------------------------------------------------------------
     def draw(self, surface: pygame.Surface):
-        if self.surface is None:
+        t = self.layer_type
+
+        if t == "cat" and self._walk_pos is not None:
+            surf = self._cat_surfaces.get(self._cat_state)
+            if surf and self._cat_frame_w > 0:
+                fw = self._cat_frame_w
+                fh = self._cat_frame_h
+                fi = self._frame_index % max(1, surf.get_width() // fw)
+                frame_surf = surf.subsurface(pygame.Rect(fi * fw, 0, fw, fh)).copy()
+                if not self._cat_facing_right:
+                    frame_surf = pygame.transform.flip(frame_surf, True, False)
+                surface.blit(frame_surf, (int(self._walk_pos[0]), int(self._walk_pos[1])))
             return
 
-        t = self.layer_type
+        if self.surface is None:
+            return
 
         if t == "scroll":
             w = self.surface.get_width()
@@ -286,17 +298,6 @@ class Layer:
                 surface.blit(frame_surf, (x, y))
             else:
                 surface.blit(self.surface, (x, y), src)
-
-        elif t == "cat" and self._walk_pos is not None:
-            surf = self._cat_surfaces.get(self._cat_state)
-            if surf and self._cat_frame_w > 0:
-                fw = self._cat_frame_w
-                fh = self._cat_frame_h
-                fi = self._frame_index % max(1, surf.get_width() // fw)
-                frame_surf = surf.subsurface(pygame.Rect(fi * fw, 0, fw, fh)).copy()
-                if not self._cat_facing_right:
-                    frame_surf = pygame.transform.flip(frame_surf, True, False)
-                surface.blit(frame_surf, (int(self._walk_pos[0]), int(self._walk_pos[1])))
 
         elif t == "firefly":
             import sprites as sp
