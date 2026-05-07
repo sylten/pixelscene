@@ -16,6 +16,54 @@
       "y": 4
     },
     {
+      "id": "bg2_building_a",
+      "type": "animated",
+      "sprite_key": "CITY_BUILDING_BLUE",
+      "fps": 0,
+      "x": 36, "y": 6,
+      "tint": [100, 115, 165]
+    },
+    {
+      "id": "bg2_building_b",
+      "type": "animated",
+      "sprite_key": "CITY_BUILDING_RED",
+      "fps": 0,
+      "x": 108, "y": 8,
+      "tint": [100, 115, 165]
+    },
+    {
+      "id": "bg2_building_c",
+      "type": "animated",
+      "sprite_key": "CITY_BUILDING_BLUE",
+      "fps": 0,
+      "x": 166, "y": 6,
+      "tint": [100, 115, 165]
+    },
+    {
+      "id": "bg_building_skyscraper",
+      "type": "animated",
+      "sprite_key": "CITY_BUILDING_RED",
+      "fps": 0,
+      "x": 12, "y": 16,
+      "tint": [150, 160, 200]
+    },
+    {
+      "id": "bg_building_red",
+      "type": "animated",
+      "sprite_key": "CITY_BUILDING_RED",
+      "fps": 0,
+      "x": 88, "y": 22,
+      "tint": [150, 160, 200]
+    },
+    {
+      "id": "bg_building_blue",
+      "type": "animated",
+      "sprite_key": "CITY_BUILDING_BLUE",
+      "fps": 0,
+      "x": 190, "y": 28,
+      "tint": [150, 160, 200]
+    },
+    {
       "id": "building_red",
       "type": "animated",
       "sprite_key": "CITY_BUILDING_RED",

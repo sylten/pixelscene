@@ -181,7 +181,19 @@ class Layer:
             src = pygame.Rect(self._frame_index * w, 0, w, h)
             x = int(self._def.get("x", 0))
             y = int(self._def.get("y", 0))
-            surface.blit(self.surface, (x, y), src)
+            tint = self._def.get("tint")
+            alpha = self._def.get("alpha")
+            if tint is not None or alpha is not None:
+                frame_surf = self.surface.subsurface(src).copy().convert_alpha()
+                if tint is not None:
+                    overlay = pygame.Surface(frame_surf.get_size(), pygame.SRCALPHA)
+                    overlay.fill(tuple(tint) + (255,))
+                    frame_surf.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                if alpha is not None:
+                    frame_surf.set_alpha(alpha)
+                surface.blit(frame_surf, (x, y))
+            else:
+                surface.blit(self.surface, (x, y), src)
 
         elif t == "firefly":
             import sprites as sp
