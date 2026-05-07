@@ -20,7 +20,7 @@
       "type": "animated",
       "sprite_key": "CITY_BUILDING_BLUE",
       "fps": 0,
-      "x": 36, "y": 6,
+      "x": 36, "y": 0,
       "tint": [100, 115, 165]
     },
     {
@@ -28,7 +28,7 @@
       "type": "animated",
       "sprite_key": "CITY_BUILDING_RED",
       "fps": 0,
-      "x": 108, "y": 8,
+      "x": 108, "y": 2,
       "tint": [100, 115, 165]
     },
     {
@@ -36,7 +36,7 @@
       "type": "animated",
       "sprite_key": "CITY_BUILDING_BLUE",
       "fps": 0,
-      "x": 166, "y": 6,
+      "x": 166, "y": 0,
       "tint": [100, 115, 165]
     },
     {
@@ -44,7 +44,7 @@
       "type": "animated",
       "sprite_key": "CITY_BUILDING_RED",
       "fps": 0,
-      "x": 12, "y": 16,
+      "x": 12, "y": 10,
       "tint": [150, 160, 200]
     },
     {
@@ -52,7 +52,7 @@
       "type": "animated",
       "sprite_key": "CITY_BUILDING_RED",
       "fps": 0,
-      "x": 88, "y": 22,
+      "x": 88, "y": 16,
       "tint": [150, 160, 200]
     },
     {
@@ -60,50 +60,56 @@
       "type": "animated",
       "sprite_key": "CITY_BUILDING_BLUE",
       "fps": 0,
-      "x": 190, "y": 28,
+      "x": 190, "y": 22,
       "tint": [150, 160, 200]
     },
     {
       "id": "building_red",
       "type": "animated",
-      "sprite_key": "CITY_BUILDING_RED",
+      "sprite_key": "CITY_BUILDING_SHOPFRONT",
       "fps": 0,
-      "x": 0, "y": 34
+      "x": 0, "y": 81
     },
     {
       "id": "building_skyscraper",
       "type": "animated",
       "sprite_key": "CITY_BUILDING_SKYSCRAPER",
       "fps": 0,
-      "x": 48, "y": 34
+      "x": 48, "y": 28
     },
     {
       "id": "building_blue",
       "type": "animated",
-      "sprite_key": "CITY_BUILDING_BLUE",
+      "sprite_key": "CITY_BUILDING_TEAL",
       "fps": 0,
-      "x": 128, "y": 34
+      "x": 128, "y": 75
     },
     {
       "id": "building_bar",
       "type": "animated",
       "sprite_key": "CITY_BUILDING_BAR",
       "fps": 0,
-      "x": 176, "y": 76
+      "x": 176, "y": 70
     },
     {
       "id": "lamp_left",
       "type": "animated",
       "sprite_key": "CITY_LAMP_GLOBE_WIDE",
       "fps": 0,
-      "x": 40, "y": 99
+      "x": 40, "y": 93
     },
     {
       "id": "lamp_right",
       "type": "animated",
       "sprite_key": "CITY_LAMP_CORNER",
       "fps": 0,
-      "x": 118, "y": 98
+      "x": 118, "y": 92
+    },
+    {
+      "id": "pavement",
+      "type": "static",
+      "sprite_key": "CITY_PAVEMENT",
+      "x": 0, "y": 124
     },
     {
       "id": "road",
