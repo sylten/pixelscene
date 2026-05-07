@@ -46,8 +46,8 @@
       {"action": "set_layer_frame", "layer": "building_skyscraper",    "frame": 2},
       {"action": "set_layer_frame", "layer": "building_blue",          "frame": 2},
       {"action": "set_layer_frame", "layer": "building_bar",           "frame": 2},
-      {"action": "set_layer_frame", "layer": "lamp_left",              "frame": 2},
-      {"action": "set_layer_frame", "layer": "lamp_right",             "frame": 2}
+      {"action": "set_layer_frame", "layer": "lamp_left",              "frame": 1},
+      {"action": "set_layer_frame", "layer": "lamp_right",             "frame": 1}
     ]
   }
 }
