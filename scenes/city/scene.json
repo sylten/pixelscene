@@ -96,14 +96,7 @@
       "type": "animated",
       "sprite_key": "CITY_LAMP_GLOBE_WIDE",
       "fps": 0,
-      "x": 40, "y": 93
-    },
-    {
-      "id": "lamp_right",
-      "type": "animated",
-      "sprite_key": "CITY_LAMP_CORNER",
-      "fps": 0,
-      "x": 174, "y": 92
+      "x": 164, "y": 93
     },
     {
       "id": "pavement",
