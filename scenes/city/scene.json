@@ -103,7 +103,7 @@
       "type": "animated",
       "sprite_key": "CITY_LAMP_CORNER",
       "fps": 0,
-      "x": 118, "y": 92
+      "x": 174, "y": 92
     },
     {
       "id": "pavement",
