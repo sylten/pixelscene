@@ -92,7 +92,8 @@ class Layer:
                     except Exception:
                         from PIL import Image as _PILImage
                         pil = _PILImage.open(path).convert("RGBA")
-                        raw = pygame.image.frombuffer(pil.tobytes(), pil.size, "RGBA").copy()
+                        raw = pygame.Surface(pil.size, pygame.SRCALPHA)
+                        raw.blit(pygame.image.frombuffer(pil.tobytes(), pil.size, "RGBA"), (0, 0))
                     w, h = raw.get_size()
                     scaled = pygame.transform.scale(raw, (int(w * scale), int(h * scale)))
                     self._cat_surfaces[state] = scaled
@@ -250,7 +251,7 @@ class Layer:
                 fh = self._cat_frame_h
                 fi = self._frame_index % max(1, surf.get_width() // fw)
                 frame_surf = surf.subsurface(pygame.Rect(fi * fw, 0, fw, fh)).copy()
-                if not self._cat_facing_right:
+                if self._cat_facing_right:
                     frame_surf = pygame.transform.flip(frame_surf, True, False)
                 surface.blit(frame_surf, (int(self._walk_pos[0]), int(self._walk_pos[1])))
             return
