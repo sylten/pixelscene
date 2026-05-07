@@ -15,22 +15,26 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-NIGHT_HOUR   = 17  # fire night_fall at or after this hour
-SUNRISE_HOUR =  6  # fire sunrise at or after this hour
+SUNRISE_HOUR = 6   # day starts at 06:00
+EVENING_HOUR = 17  # evening (lights on) starts at 17:00
+NIGHT_HOUR   = 22  # night (dark, no lights) starts at 22:00
 
 
-def _is_night(hour: int) -> bool:
-    return hour >= NIGHT_HOUR or hour < SUNRISE_HOUR
+def _time_of_day(hour: int) -> str:
+    if hour >= NIGHT_HOUR or hour < SUNRISE_HOUR:
+        return "night"
+    if hour >= EVENING_HOUR:
+        return "evening"
+    return "day"
 
 
 def _day_night_scheduler(event_queue: queue.Queue):
     last_state = None
     while True:
-        hour = datetime.now().hour
-        state = "night" if _is_night(hour) else "day"
+        state = _time_of_day(datetime.now().hour)
         if state != last_state:
-            event = "night_fall" if state == "night" else "sunrise"
-            logger.info("Scheduler: firing %s (hour=%d)", event, hour)
+            event = {"day": "sunrise", "evening": "evening", "night": "night"}[state]
+            logger.info("Scheduler: firing %s (hour=%d)", event, datetime.now().hour)
             event_queue.put(event)
             last_state = state
         time.sleep(60)
