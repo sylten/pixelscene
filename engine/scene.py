@@ -328,7 +328,28 @@ class Layer:
                 if self._cat_facing_right:
                     frame_surf = pygame.transform.flip(frame_surf, True, False)
                     x_off = 1 - x_off
-                surface.blit(frame_surf, (int(self._walk_pos[0]) + x_off, int(self._walk_pos[1])))
+                # Perspective: scale by depth (y position in scene)
+                y_far  = self._def.get("depth_y_far")
+                y_near = self._def.get("depth_y_near")
+                if y_far is not None and y_near is not None:
+                    y_range = float(y_near) - float(y_far)
+                    t_depth = ((self._walk_pos[1] - float(y_far)) / y_range) if y_range else 0.5
+                    t_depth = max(0.0, min(1.0, t_depth))
+                    s_far  = self._def.get("depth_scale_far",  0.8)
+                    s_near = self._def.get("depth_scale_near", 1.15)
+                    persp = s_far + (s_near - s_far) * t_depth
+                    if abs(persp - 1.0) > 0.01:
+                        new_fw = max(1, round(fw * persp))
+                        new_fh = max(1, round(fh * persp))
+                        frame_surf = pygame.transform.scale(frame_surf, (new_fw, new_fh))
+                        # Keep horizontal centre fixed; anchor bottom of sprite to walk_pos y
+                        x_off += (fw - new_fw) // 2
+                        draw_y = int(self._walk_pos[1]) + fh - new_fh
+                    else:
+                        draw_y = int(self._walk_pos[1])
+                else:
+                    draw_y = int(self._walk_pos[1])
+                surface.blit(frame_surf, (int(self._walk_pos[0]) + x_off, draw_y))
             return
 
         if self.surface is None:
