@@ -38,12 +38,18 @@ class Layer:
         # Cat animation state
         self._cat_surfaces: Dict[str, Any] = {}
         self._cat_fps: Dict[str, int] = {}
+        self._cat_offsets: Dict[str, List[int]] = {}   # per-raw-frame x correction
+        self._cat_frame_seq: Dict[str, List[int]] = {} # sequence of raw frame indices to use
         self._cat_frame_w = 32
         self._cat_frame_h = 32
         self._cat_state = "idle"
         self._cat_idle_timer = 0.0
         self._cat_idle_duration = 0.0
         self._cat_facing_right = True
+        self._cat_pause_timer = 0.0
+        self._cat_pause_duration = 0.0
+        self._cat_look_timer = 0.0
+        self._cat_look_interval = 0.0
 
         self._load_surface()
 
@@ -98,6 +104,28 @@ class Layer:
                     scaled = pygame.transform.scale(raw, (int(w * scale), int(h * scale)))
                     self._cat_surfaces[state] = scaled
                     self._cat_fps[state] = self._def.get(f"{state}_fps", 10)
+                    # Precompute per-frame horizontal body-center offsets (center of mass,
+                    # applied at draw time so no pixels are clipped) and filter out
+                    # "wrap" frames where the cat body has scrolled out of the frame window.
+                    fw, fh = self._cat_frame_w, self._cat_frame_h
+                    target_cx = fw // 2
+                    offsets: List[int] = []
+                    counts: List[int] = []
+                    for fi in range(scaled.get_width() // fw):
+                        sub = scaled.subsurface(pygame.Rect(fi * fw, 0, fw, fh))
+                        xs = [x for x in range(fw) for y in range(fh)
+                              if sub.get_at((x, y))[3] > 32]
+                        counts.append(len(xs))
+                        cx = round(sum(xs) / len(xs)) if xs else target_cx
+                        offsets.append(target_cx - cx)
+                    self._cat_offsets[state] = offsets
+                    # Skip frames with < 70 % of the fullest frame's pixel count —
+                    # these are the wrap/transition frames where the body exits the window.
+                    threshold = max(counts) * 0.8 if counts else 0
+                    seq = [fi for fi, cnt in enumerate(counts) if cnt >= threshold]
+                    self._cat_frame_seq[state] = seq or list(range(len(offsets)))
+                    logger.debug("Cat %s: %d/%d frames usable, offsets %s",
+                                 state, len(seq), len(offsets), offsets)
                 except Exception as e:
                     logger.warning("Cat: could not load %s: %s", path, e)
 
@@ -106,7 +134,8 @@ class Layer:
             self._walk_pos = list(map(float, waypoints[0]))
             self._waypoint_index = 1 % len(waypoints)
 
-        self._cat_idle_duration = random.uniform(1.0, 3.0)
+        self._cat_idle_duration = random.uniform(3.0, 8.0)
+        self._cat_look_interval = random.uniform(2.0, 5.0)
 
     # ------------------------------------------------------------------
     def update(self, dt: float, paused: bool, elapsed: float):
@@ -173,21 +202,43 @@ class Layer:
 
     def _cat_update(self, dt: float):
         fps = self._cat_fps.get(self._cat_state, 10)
+        # Resolve animation state — "pause" uses idle surfaces/fps
+        anim_state = self._cat_state if self._cat_state in self._cat_surfaces else "idle"
+        fps = self._cat_fps.get(anim_state, 10)
         if fps > 0:
             self._frame_elapsed += dt
             if self._frame_elapsed >= 1.0 / fps:
                 self._frame_elapsed = 0.0
-                surf = self._cat_surfaces.get(self._cat_state)
-                if surf and self._cat_frame_w > 0:
-                    frames = surf.get_width() // self._cat_frame_w
-                    self._frame_index = (self._frame_index + 1) % max(1, frames)
+                seq = self._cat_frame_seq.get(anim_state)
+                if seq:
+                    self._frame_index = (self._frame_index + 1) % len(seq)
+                else:
+                    surf = self._cat_surfaces.get(anim_state)
+                    if surf and self._cat_frame_w > 0:
+                        frames = surf.get_width() // self._cat_frame_w
+                        self._frame_index = (self._frame_index + 1) % max(1, frames)
 
         waypoints = self._def.get("waypoints", [])
 
-        if self._cat_state == "idle":
+        if self._cat_state in ("idle", "pause"):
             self._cat_idle_timer += dt
+
+            # Look around: occasionally turn to face the other direction
+            self._cat_look_timer += dt
+            if self._cat_look_timer >= self._cat_look_interval:
+                self._cat_facing_right = not self._cat_facing_right
+                self._cat_look_timer = 0.0
+                self._cat_look_interval = random.uniform(3.0, 9.0)
+
             if self._cat_idle_timer >= self._cat_idle_duration and len(waypoints) >= 2:
+                # Pick a random waypoint that isn't the one we're sitting at
+                if self._walk_pos is not None:
+                    candidates = [i for i, wp in enumerate(waypoints)
+                                  if abs(float(wp[0]) - self._walk_pos[0]) > 5]
+                    self._waypoint_index = random.choice(candidates) if candidates else 0
                 self._cat_state = "walk"
+                self._cat_idle_timer = 0.0
+                self._cat_pause_timer = 0.0
                 self._frame_index = 0
                 self._frame_elapsed = 0.0
 
@@ -206,16 +257,31 @@ class Layer:
             if dist < 1.0:
                 self._walk_pos[0] = float(target[0])
                 self._walk_pos[1] = float(target[1])
-                self._waypoint_index = (self._waypoint_index + 1) % len(waypoints)
                 self._cat_state = "idle"
                 self._cat_idle_timer = 0.0
-                self._cat_idle_duration = random.uniform(2.0, 6.0)
+                # Lazy city cat: long sits, occasionally very long
+                self._cat_idle_duration = random.choices(
+                    [random.uniform(5, 10), random.uniform(10, 20), random.uniform(20, 40)],
+                    weights=[5, 3, 1],
+                )[0]
+                self._cat_look_timer = 0.0
+                self._cat_look_interval = random.uniform(2.0, 5.0)
                 self._frame_index = 0
                 self._frame_elapsed = 0.0
             else:
-                move = speed * dt * config.TARGET_FPS
-                self._walk_pos[0] += (dx / dist) * move
-                self._walk_pos[1] += (dy / dist) * move
+                # Small chance each second to pause mid-walk
+                if random.random() < 0.08 * dt:
+                    self._cat_state = "pause"
+                    self._cat_idle_timer = 0.0
+                    self._cat_idle_duration = random.uniform(1.0, 3.5)
+                    self._cat_look_timer = 0.0
+                    self._cat_look_interval = random.uniform(1.0, 3.0)
+                    self._frame_index = 0
+                    self._frame_elapsed = 0.0
+                else:
+                    move = speed * dt * config.TARGET_FPS
+                    self._walk_pos[0] += (dx / dist) * move
+                    self._walk_pos[1] += (dy / dist) * move
 
     def set_frame(self, frame_idx: int):
         """Lock this layer to a specific frame index (used by set_layer_frame events)."""
@@ -245,15 +311,24 @@ class Layer:
         t = self.layer_type
 
         if t == "cat" and self._walk_pos is not None:
-            surf = self._cat_surfaces.get(self._cat_state)
+            anim_state = self._cat_state if self._cat_state in self._cat_surfaces else "idle"
+            surf = self._cat_surfaces.get(anim_state)
             if surf and self._cat_frame_w > 0:
                 fw = self._cat_frame_w
                 fh = self._cat_frame_h
-                fi = self._frame_index % max(1, surf.get_width() // fw)
+                # Resolve sequence position → raw sprite-sheet frame index
+                seq = self._cat_frame_seq.get(anim_state)
+                if seq:
+                    fi = seq[self._frame_index % len(seq)]
+                else:
+                    fi = self._frame_index % max(1, surf.get_width() // fw)
                 frame_surf = surf.subsurface(pygame.Rect(fi * fw, 0, fw, fh)).copy()
+                offsets = self._cat_offsets.get(anim_state, [])
+                x_off = offsets[fi] if fi < len(offsets) else 0
                 if self._cat_facing_right:
                     frame_surf = pygame.transform.flip(frame_surf, True, False)
-                surface.blit(frame_surf, (int(self._walk_pos[0]), int(self._walk_pos[1])))
+                    x_off = 1 - x_off
+                surface.blit(frame_surf, (int(self._walk_pos[0]) + x_off, int(self._walk_pos[1])))
             return
 
         if self.surface is None:
