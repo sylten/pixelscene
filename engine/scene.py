@@ -51,6 +51,20 @@ class Layer:
         self._cat_look_timer = 0.0
         self._cat_look_interval = 0.0
 
+        # Multi-surface state
+        self._cat_surface = "pavement"
+        self._cat_surface_defs: Dict[str, Any] = {}
+        self._cat_target_surface: Optional[str] = None
+        self._cat_target_entry: Optional[tuple] = None
+        self._cat_offscreen_timer = 0.0
+        self._cat_target_pos: Optional[List[float]] = None
+        self._cat_pending_transition: Optional[Dict[str, Any]] = None
+        # Jump arc state
+        self._cat_jump_t = 0.0
+        self._cat_jump_from = (0.0, 0.0)
+        self._cat_jump_to = (0.0, 0.0)
+        self._cat_jump_duration = 0.6
+
         self._load_surface()
 
     def _load_surface(self):
@@ -89,7 +103,7 @@ class Layer:
         self._cat_frame_w = int(64 * scale)
         self._cat_frame_h = int(64 * scale)
 
-        for state, key in [("idle", "idle_sprite"), ("walk", "walk_sprite")]:
+        for state, key in [("idle", "idle_sprite"), ("walk", "walk_sprite"), ("jump", "jump_sprite")]:
             path = self._def.get(key)
             if path and os.path.exists(path):
                 try:
@@ -104,9 +118,6 @@ class Layer:
                     scaled = pygame.transform.scale(raw, (int(w * scale), int(h * scale)))
                     self._cat_surfaces[state] = scaled
                     self._cat_fps[state] = self._def.get(f"{state}_fps", 10)
-                    # Precompute per-frame horizontal body-center offsets (center of mass,
-                    # applied at draw time so no pixels are clipped) and filter out
-                    # "wrap" frames where the cat body has scrolled out of the frame window.
                     fw, fh = self._cat_frame_w, self._cat_frame_h
                     target_cx = fw // 2
                     offsets: List[int] = []
@@ -119,8 +130,6 @@ class Layer:
                         cx = round(sum(xs) / len(xs)) if xs else target_cx
                         offsets.append(target_cx - cx)
                     self._cat_offsets[state] = offsets
-                    # Skip frames with < 70 % of the fullest frame's pixel count —
-                    # these are the wrap/transition frames where the body exits the window.
                     threshold = max(counts) * 0.8 if counts else 0
                     seq = [fi for fi, cnt in enumerate(counts) if cnt >= threshold]
                     self._cat_frame_seq[state] = seq or list(range(len(offsets)))
@@ -129,10 +138,36 @@ class Layer:
                 except Exception as e:
                     logger.warning("Cat: could not load %s: %s", path, e)
 
-        waypoints = self._def.get("waypoints", [])
-        if waypoints:
-            self._walk_pos = list(map(float, waypoints[0]))
-            self._waypoint_index = 1 % len(waypoints)
+        surfaces = self._def.get("surfaces")
+        if surfaces:
+            self._cat_surface_defs = surfaces
+            self._cat_surface = self._def.get("start_surface", next(iter(surfaces)))
+            surf_def = surfaces.get(self._cat_surface, {})
+            waypoints = surf_def.get("waypoints", [])
+            if waypoints:
+                self._walk_pos = list(map(float, waypoints[0]))
+                self._waypoint_index = 1 % max(1, len(waypoints))
+            else:
+                x_min = float(surf_def.get("x_min", 0))
+                x_max = float(surf_def.get("x_max", 240))
+                surf_y = float(surf_def.get("y", 100))
+                self._walk_pos = [random.uniform(x_min, x_max), surf_y]
+        else:
+            # Legacy: synthesize a pavement surface from top-level fields
+            self._cat_surface_defs = {"pavement": {
+                "depth_y_far": self._def.get("depth_y_far"),
+                "depth_y_near": self._def.get("depth_y_near"),
+                "depth_scale_far": self._def.get("depth_scale_far", 0.85),
+                "depth_scale_near": self._def.get("depth_scale_near", 1.1),
+                "waypoints": self._def.get("waypoints", []),
+                "transition_chance": 0.0,
+                "transitions": [],
+            }}
+            self._cat_surface = "pavement"
+            waypoints = self._def.get("waypoints", [])
+            if waypoints:
+                self._walk_pos = list(map(float, waypoints[0]))
+                self._waypoint_index = 1 % max(1, len(waypoints))
 
         self._cat_idle_duration = random.uniform(3.0, 8.0)
         self._cat_look_interval = random.uniform(2.0, 5.0)
@@ -201,51 +236,106 @@ class Layer:
                 self._update_walk(dt)
 
     def _cat_update(self, dt: float):
-        fps = self._cat_fps.get(self._cat_state, 10)
-        # Resolve animation state — "pause" uses idle surfaces/fps
-        anim_state = self._cat_state if self._cat_state in self._cat_surfaces else "idle"
-        fps = self._cat_fps.get(anim_state, 10)
-        if fps > 0:
-            self._frame_elapsed += dt
-            if self._frame_elapsed >= 1.0 / fps:
-                self._frame_elapsed = 0.0
-                seq = self._cat_frame_seq.get(anim_state)
-                if seq:
-                    self._frame_index = (self._frame_index + 1) % len(seq)
-                else:
-                    surf = self._cat_surfaces.get(anim_state)
-                    if surf and self._cat_frame_w > 0:
-                        frames = surf.get_width() // self._cat_frame_w
-                        self._frame_index = (self._frame_index + 1) % max(1, frames)
+        # Map behavior state → animation surface key
+        _ANIM: Dict[str, str] = {
+            "idle": "idle", "pause": "idle",
+            "walk": "walk", "exiting": "walk",
+            "jumping": "jump", "offscreen": "idle",
+        }
+        anim_state = _ANIM.get(self._cat_state, "idle")
+        if anim_state not in self._cat_surfaces:
+            anim_state = "idle"
 
-        waypoints = self._def.get("waypoints", [])
+        # Advance animation frame (skip while off-screen)
+        if self._cat_state != "offscreen":
+            fps = self._cat_fps.get(anim_state, 10)
+            if fps > 0:
+                self._frame_elapsed += dt
+                if self._frame_elapsed >= 1.0 / fps:
+                    self._frame_elapsed = 0.0
+                    seq = self._cat_frame_seq.get(anim_state)
+                    if seq:
+                        self._frame_index = (self._frame_index + 1) % len(seq)
+                    else:
+                        surf = self._cat_surfaces.get(anim_state)
+                        if surf and self._cat_frame_w > 0:
+                            frames = surf.get_width() // self._cat_frame_w
+                            self._frame_index = (self._frame_index + 1) % max(1, frames)
+
+        surf_def = self._cat_surface_defs.get(self._cat_surface, {})
 
         if self._cat_state in ("idle", "pause"):
             self._cat_idle_timer += dt
 
-            # Look around: occasionally turn to face the other direction
+            # Look around: occasionally face the other way
             self._cat_look_timer += dt
             if self._cat_look_timer >= self._cat_look_interval:
                 self._cat_facing_right = not self._cat_facing_right
                 self._cat_look_timer = 0.0
                 self._cat_look_interval = random.uniform(3.0, 9.0)
 
-            if self._cat_idle_timer >= self._cat_idle_duration and len(waypoints) >= 2:
-                # Pick a random waypoint that isn't the one we're sitting at
-                if self._walk_pos is not None:
-                    candidates = [i for i, wp in enumerate(waypoints)
-                                  if abs(float(wp[0]) - self._walk_pos[0]) > 5]
-                    self._waypoint_index = random.choice(candidates) if candidates else 0
-                self._cat_state = "walk"
-                self._cat_idle_timer = 0.0
-                self._cat_pause_timer = 0.0
-                self._frame_index = 0
-                self._frame_elapsed = 0.0
+            if self._cat_idle_timer >= self._cat_idle_duration:
+                transitions = surf_def.get("transitions", [])
+                chance = float(surf_def.get("transition_chance", 0.0))
+                chosen = None
+                if transitions and random.random() < chance:
+                    chosen = random.choice(transitions)
+
+                if chosen is not None:
+                    via = chosen.get("via")
+                    if via == "offscreen":
+                        exit_side = chosen.get("exit_side", "right")
+                        exit_x = -60.0 if exit_side == "left" else float(config.RENDER_WIDTH + 60)
+                        cur_y = self._walk_pos[1] if self._walk_pos else 100.0
+                        self._cat_target_pos = [exit_x, cur_y]
+                        self._cat_target_surface = chosen.get("to")
+                        self._cat_target_entry = (
+                            float(chosen.get("entry_x", 0)),
+                            float(chosen.get("entry_y", 100)),
+                        )
+                        self._cat_state = "exiting"
+                    elif via == "jump":
+                        from_x = float(chosen.get("from_x",
+                                       self._walk_pos[0] if self._walk_pos else 0))
+                        cur_y = float(surf_def.get("y", self._walk_pos[1] if self._walk_pos else 100))
+                        self._cat_target_pos = [from_x, cur_y]
+                        self._cat_pending_transition = chosen
+                        self._cat_state = "walk"
+                    self._cat_idle_timer = 0.0
+                    self._frame_index = 0
+                    self._frame_elapsed = 0.0
+                else:
+                    # Normal walk to another waypoint (or random roof position)
+                    waypoints = surf_def.get("waypoints", [])
+                    if waypoints and self._walk_pos is not None:
+                        candidates = [i for i, wp in enumerate(waypoints)
+                                      if abs(float(wp[0]) - self._walk_pos[0]) > 5]
+                        self._waypoint_index = random.choice(candidates) if candidates else 0
+                        self._cat_target_pos = None
+                    elif self._walk_pos is not None:
+                        x_min = float(surf_def.get("x_min", 0))
+                        x_max = float(surf_def.get("x_max", 240))
+                        target_y = float(surf_def.get("y", self._walk_pos[1]))
+                        self._cat_target_pos = [random.uniform(x_min, x_max), target_y]
+                    self._cat_state = "walk"
+                    self._cat_idle_timer = 0.0
+                    self._cat_pause_timer = 0.0
+                    self._frame_index = 0
+                    self._frame_elapsed = 0.0
 
         elif self._cat_state == "walk":
-            if not waypoints or self._walk_pos is None:
+            waypoints = surf_def.get("waypoints", [])
+            if self._cat_target_pos is not None:
+                target = self._cat_target_pos
+            elif waypoints:
+                target = waypoints[self._waypoint_index % len(waypoints)]
+            else:
+                self._cat_state = "idle"
                 return
-            target = waypoints[self._waypoint_index % len(waypoints)]
+
+            if self._walk_pos is None:
+                return
+
             dx = float(target[0]) - self._walk_pos[0]
             dy = float(target[1]) - self._walk_pos[1]
             dist = math.hypot(dx, dy)
@@ -257,20 +347,27 @@ class Layer:
             if dist < 1.0:
                 self._walk_pos[0] = float(target[0])
                 self._walk_pos[1] = float(target[1])
-                self._cat_state = "idle"
-                self._cat_idle_timer = 0.0
-                # Lazy city cat: long sits, occasionally very long
-                self._cat_idle_duration = random.choices(
-                    [random.uniform(5, 10), random.uniform(10, 20), random.uniform(20, 40)],
-                    weights=[5, 3, 1],
-                )[0]
-                self._cat_look_timer = 0.0
-                self._cat_look_interval = random.uniform(2.0, 5.0)
-                self._frame_index = 0
-                self._frame_elapsed = 0.0
+
+                if self._cat_pending_transition is not None:
+                    tr = self._cat_pending_transition
+                    self._cat_pending_transition = None
+                    self._cat_target_pos = None
+                    self._start_cat_jump(tr)
+                else:
+                    self._cat_target_pos = None
+                    self._cat_state = "idle"
+                    self._cat_idle_timer = 0.0
+                    self._cat_idle_duration = random.choices(
+                        [random.uniform(5, 10), random.uniform(10, 20), random.uniform(20, 40)],
+                        weights=[5, 3, 1],
+                    )[0]
+                    self._cat_look_timer = 0.0
+                    self._cat_look_interval = random.uniform(2.0, 5.0)
+                    self._frame_index = 0
+                    self._frame_elapsed = 0.0
             else:
-                # Small chance each second to pause mid-walk
-                if random.random() < 0.08 * dt:
+                # Mid-walk pause (skip when walking to a jump launch point)
+                if self._cat_pending_transition is None and random.random() < 0.08 * dt:
                     self._cat_state = "pause"
                     self._cat_idle_timer = 0.0
                     self._cat_idle_duration = random.uniform(1.0, 3.5)
@@ -282,6 +379,85 @@ class Layer:
                     move = speed * dt * config.TARGET_FPS
                     self._walk_pos[0] += (dx / dist) * move
                     self._walk_pos[1] += (dy / dist) * move
+
+        elif self._cat_state == "exiting":
+            if self._walk_pos is None or self._cat_target_pos is None:
+                self._cat_state = "idle"
+                return
+            dx = self._cat_target_pos[0] - self._walk_pos[0]
+            dy = self._cat_target_pos[1] - self._walk_pos[1]
+            dist = math.hypot(dx, dy)
+            speed = self._def.get("walk_speed", 1.2)
+            if dx != 0:
+                self._cat_facing_right = dx > 0
+            if dist < 1.0:
+                self._cat_state = "offscreen"
+                self._cat_offscreen_timer = random.uniform(0.5, 1.5)
+                self._cat_target_pos = None
+            else:
+                move = speed * dt * config.TARGET_FPS
+                self._walk_pos[0] += (dx / dist) * move
+                self._walk_pos[1] += (dy / dist) * move
+
+        elif self._cat_state == "offscreen":
+            self._cat_offscreen_timer -= dt
+            if self._cat_offscreen_timer <= 0:
+                if self._cat_target_entry is not None and self._cat_target_surface is not None:
+                    self._walk_pos = [float(self._cat_target_entry[0]),
+                                      float(self._cat_target_entry[1])]
+                    self._cat_surface = self._cat_target_surface
+                    self._cat_target_surface = None
+                    self._cat_target_entry = None
+                self._cat_state = "idle"
+                self._cat_idle_timer = 0.0
+                self._cat_idle_duration = random.uniform(2.0, 6.0)
+                self._cat_look_timer = 0.0
+                self._cat_look_interval = random.uniform(1.5, 4.0)
+                self._frame_index = 0
+                self._frame_elapsed = 0.0
+
+        elif self._cat_state == "jumping":
+            self._cat_jump_t += dt / max(0.001, self._cat_jump_duration)
+            if self._cat_jump_t >= 1.0:
+                self._cat_jump_t = 1.0
+                if self._cat_target_surface is not None:
+                    self._cat_surface = self._cat_target_surface
+                    self._cat_target_surface = None
+                self._walk_pos = list(self._cat_jump_to)
+                self._cat_state = "idle"
+                self._cat_idle_timer = 0.0
+                self._cat_idle_duration = random.uniform(3.0, 8.0)
+                self._cat_look_timer = 0.0
+                self._cat_look_interval = random.uniform(2.0, 5.0)
+                self._frame_index = 0
+                self._frame_elapsed = 0.0
+            else:
+                jt = self._cat_jump_t
+                fx, fy = self._cat_jump_from
+                tx, ty = self._cat_jump_to
+                drop = abs(ty - fy)
+                arc = max(8.0, drop * 0.15)
+                x = fx + (tx - fx) * jt
+                y = fy + (ty - fy) * jt - arc * math.sin(math.pi * jt)
+                self._walk_pos = [x, y]
+                if (tx - fx) != 0:
+                    self._cat_facing_right = (tx - fx) > 0
+
+    def _start_cat_jump(self, tr: Dict[str, Any]):
+        surf_def = self._cat_surface_defs.get(self._cat_surface, {})
+        from_x = float(self._walk_pos[0]) if self._walk_pos else 0.0
+        from_y = float(surf_def.get("y", self._walk_pos[1] if self._walk_pos else 0))
+        land_x = float(tr.get("land_x", from_x))
+        land_y = float(tr.get("land_y", 105.0))
+        self._cat_jump_from = (from_x, from_y)
+        self._cat_jump_to = (land_x, land_y)
+        self._cat_jump_t = 0.0
+        drop = abs(land_y - from_y)
+        self._cat_jump_duration = max(0.4, min(1.4, 0.35 + drop / 90.0))
+        self._cat_target_surface = tr.get("to", "pavement")
+        self._cat_state = "jumping"
+        self._frame_index = 0
+        self._frame_elapsed = 0.0
 
     def set_frame(self, frame_idx: int):
         """Lock this layer to a specific frame index (used by set_layer_frame events)."""
@@ -311,40 +487,64 @@ class Layer:
         t = self.layer_type
 
         if t == "cat" and self._walk_pos is not None:
-            anim_state = self._cat_state if self._cat_state in self._cat_surfaces else "idle"
-            surf = self._cat_surfaces.get(anim_state)
-            if surf and self._cat_frame_w > 0:
+            # Don't draw during off-screen transition
+            if self._cat_state == "offscreen":
+                return
+
+            _ANIM: Dict[str, str] = {
+                "idle": "idle", "pause": "idle",
+                "walk": "walk", "exiting": "walk",
+                "jumping": "jump",
+            }
+            anim_state = _ANIM.get(self._cat_state, "idle")
+            if anim_state not in self._cat_surfaces:
+                anim_state = "idle"
+
+            surf_src = self._cat_surfaces.get(anim_state)
+            if surf_src and self._cat_frame_w > 0:
                 fw = self._cat_frame_w
                 fh = self._cat_frame_h
-                # Resolve sequence position → raw sprite-sheet frame index
                 seq = self._cat_frame_seq.get(anim_state)
                 if seq:
                     fi = seq[self._frame_index % len(seq)]
                 else:
-                    fi = self._frame_index % max(1, surf.get_width() // fw)
-                frame_surf = surf.subsurface(pygame.Rect(fi * fw, 0, fw, fh)).copy()
+                    fi = self._frame_index % max(1, surf_src.get_width() // fw)
+                frame_surf = surf_src.subsurface(pygame.Rect(fi * fw, 0, fw, fh)).copy()
                 offsets = self._cat_offsets.get(anim_state, [])
                 x_off = offsets[fi] if fi < len(offsets) else 0
                 if self._cat_facing_right:
                     frame_surf = pygame.transform.flip(frame_surf, True, False)
                     x_off = 1 - x_off
-                # Perspective: scale by depth (y position in scene)
-                y_far  = self._def.get("depth_y_far")
-                y_near = self._def.get("depth_y_near")
+
                 draw_y = int(self._walk_pos[1])
-                if y_far is not None and y_near is not None:
+                surf_def = self._cat_surface_defs.get(self._cat_surface, {})
+
+                persp_fixed = surf_def.get("persp")
+                y_far = surf_def.get("depth_y_far")
+                y_near = surf_def.get("depth_y_near")
+
+                if persp_fixed is not None:
+                    # Fixed scale for rooftop surfaces
+                    persp = float(persp_fixed)
+                    if abs(persp - 1.0) > 0.01:
+                        new_fw = max(1, round(fw * persp))
+                        new_fh = max(1, round(fh * persp))
+                        frame_surf = pygame.transform.scale(frame_surf, (new_fw, new_fh))
+                        x_off += (fw - new_fw) // 2
+                elif y_far is not None and y_near is not None:
+                    # Depth-band perspective for pavement
                     y_range = float(y_near) - float(y_far)
                     t_depth = ((self._walk_pos[1] - float(y_far)) / y_range) if y_range else 0.5
                     t_depth = max(0.0, min(1.0, t_depth))
-                    s_far  = self._def.get("depth_scale_far",  0.85)
-                    s_near = self._def.get("depth_scale_near", 1.1)
+                    s_far = surf_def.get("depth_scale_far", 0.85)
+                    s_near = surf_def.get("depth_scale_near", 1.1)
                     persp = s_far + (s_near - s_far) * t_depth
                     if abs(persp - 1.0) > 0.01:
                         new_fw = max(1, round(fw * persp))
                         new_fh = max(1, round(fh * persp))
                         frame_surf = pygame.transform.scale(frame_surf, (new_fw, new_fh))
-                        # Top-anchor: draw_y unchanged, only centre x
                         x_off += (fw - new_fw) // 2
+
                 surface.blit(frame_surf, (int(self._walk_pos[0]) + x_off, draw_y))
             return
 

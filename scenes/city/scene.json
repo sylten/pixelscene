@@ -125,19 +125,63 @@
       "type": "cat",
       "idle_sprite": "references/FREE_Cat 2D Pixel Art/Sprites/IDLE.png",
       "walk_sprite": "references/FREE_Cat 2D Pixel Art/Sprites/WALK.png",
+      "jump_sprite": "references/FREE_Cat 2D Pixel Art/Sprites/JUMP.png",
       "scale": 0.5,
       "idle_fps": 10,
       "walk_fps": 15,
+      "jump_fps": 12,
       "walk_speed": 1.2,
-      "depth_y_far": 100,
-      "depth_y_near": 107,
-      "depth_scale_far": 0.85,
-      "depth_scale_near": 1.1,
-      "waypoints": [
-        [12, 103], [40, 100], [78, 106], [110, 101],
-        [145, 100],[175, 104],[190, 107],[60, 102],
-        [130, 105],[20, 101], [165, 100],[88, 104]
-      ]
+      "start_surface": "pavement",
+      "surfaces": {
+        "pavement": {
+          "depth_y_far": 100, "depth_y_near": 107,
+          "depth_scale_far": 0.85, "depth_scale_near": 1.1,
+          "waypoints": [
+            [12,103],[40,100],[78,106],[110,101],[145,100],[175,104],
+            [190,107],[60,102],[130,105],[20,101],[165,100],[88,104]
+          ],
+          "transition_chance": 0.15,
+          "transitions": [
+            {"to": "roof_red",        "via": "offscreen", "exit_side": "left",  "entry_x": 6,   "entry_y": 58},
+            {"to": "roof_skyscraper", "via": "offscreen", "exit_side": "left",  "entry_x": 55,  "entry_y": 6},
+            {"to": "roof_bar",        "via": "offscreen", "exit_side": "right", "entry_x": 232, "entry_y": 47}
+          ]
+        },
+        "roof_red": {
+          "persp": 0.82, "y": 58, "x_min": 4, "x_max": 44,
+          "transition_chance": 0.4,
+          "transitions": [
+            {"to": "pavement", "via": "jump", "from_x": 6,  "land_x": 4,  "land_y": 105},
+            {"to": "pavement", "via": "jump", "from_x": 44, "land_x": 44, "land_y": 105}
+          ]
+        },
+        "roof_skyscraper": {
+          "persp": 0.78, "y": 6, "x_min": 50, "x_max": 126,
+          "transition_chance": 0.35,
+          "transitions": [
+            {"to": "roof_red",  "via": "jump", "from_x": 52,  "land_x": 42,  "land_y": 58},
+            {"to": "roof_blue", "via": "jump", "from_x": 122, "land_x": 132, "land_y": 52}
+          ]
+        },
+        "roof_blue": {
+          "persp": 0.82, "y": 52, "x_min": 130, "x_max": 174,
+          "transition_chance": 0.4,
+          "transitions": [
+            {"to": "roof_bar", "via": "jump", "from_x": 172, "land_x": 180, "land_y": 47},
+            {"to": "pavement", "via": "jump", "from_x": 130, "land_x": 130, "land_y": 105},
+            {"to": "pavement", "via": "jump", "from_x": 174, "land_x": 174, "land_y": 105}
+          ]
+        },
+        "roof_bar": {
+          "persp": 0.82, "y": 47, "x_min": 178, "x_max": 234,
+          "transition_chance": 0.4,
+          "transitions": [
+            {"to": "roof_blue", "via": "jump", "from_x": 180, "land_x": 170, "land_y": 52},
+            {"to": "pavement",  "via": "jump", "from_x": 200, "land_x": 200, "land_y": 105},
+            {"to": "pavement",  "via": "jump", "from_x": 234, "land_x": 234, "land_y": 105}
+          ]
+        }
+      }
     }
   ]
 }
