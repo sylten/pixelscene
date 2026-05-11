@@ -40,6 +40,7 @@ class Layer:
         self._cat_fps: Dict[str, int] = {}
         self._cat_offsets: Dict[str, List[int]] = {}   # per-raw-frame x correction
         self._cat_frame_seq: Dict[str, List[int]] = {} # sequence of raw frame indices to use
+        self._cat_foot_y_norm: Dict[str, float] = {}  # fraction of frame height to lowest opaque pixel
         self._cat_frame_w = 32
         self._cat_frame_h = 32
         self._cat_state = "idle"
@@ -122,19 +123,25 @@ class Layer:
                     target_cx = fw // 2
                     offsets: List[int] = []
                     counts: List[int] = []
+                    foot_ys: List[int] = []
                     for fi in range(scaled.get_width() // fw):
                         sub = scaled.subsurface(pygame.Rect(fi * fw, 0, fw, fh))
-                        xs = [x for x in range(fw) for y in range(fh)
-                              if sub.get_at((x, y))[3] > 32]
-                        counts.append(len(xs))
-                        cx = round(sum(xs) / len(xs)) if xs else target_cx
+                        pixels = [(x, y) for x in range(fw) for y in range(fh)
+                                  if sub.get_at((x, y))[3] > 32]
+                        counts.append(len(pixels))
+                        cx = round(sum(p[0] for p in pixels) / len(pixels)) if pixels else target_cx
                         offsets.append(target_cx - cx)
+                        foot_ys.append(max((p[1] for p in pixels), default=fh - 1))
                     self._cat_offsets[state] = offsets
                     threshold = max(counts) * 0.8 if counts else 0
                     seq = [fi for fi, cnt in enumerate(counts) if cnt >= threshold]
                     self._cat_frame_seq[state] = seq or list(range(len(offsets)))
-                    logger.debug("Cat %s: %d/%d frames usable, offsets %s",
-                                 state, len(seq), len(offsets), offsets)
+                    usable = seq or list(range(len(foot_ys)))
+                    foot_y = max(foot_ys[fi] for fi in usable) if usable else fh - 1
+                    self._cat_foot_y_norm[state] = (foot_y + 1) / fh
+                    logger.debug("Cat %s: %d/%d frames usable, foot_y=%d/%d (%.2f)",
+                                 state, len(seq), len(offsets), foot_y, fh,
+                                 self._cat_foot_y_norm[state])
                 except Exception as e:
                     logger.warning("Cat: could not load %s: %s", path, e)
 
@@ -545,7 +552,9 @@ class Layer:
                         frame_surf = pygame.transform.scale(frame_surf, (new_fw, new_fh))
                         x_off += (fw - new_fw) // 2
 
-                surface.blit(frame_surf, (int(self._walk_pos[0]) + x_off, draw_y))
+                foot_norm = self._cat_foot_y_norm.get(anim_state, 1.0)
+                foot_row = round(foot_norm * frame_surf.get_height())
+                surface.blit(frame_surf, (int(self._walk_pos[0]) + x_off, draw_y - foot_row))
             return
 
         if self.surface is None:

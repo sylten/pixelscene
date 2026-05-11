@@ -1,12 +1,17 @@
 {
   "id": "city",
-  "background_color": [18, 32, 85],
+  "background_color": [
+    18,
+    32,
+    85
+  ],
   "layers": [
     {
       "id": "sky",
       "type": "static",
       "sprite_key": "CITY_SKY",
-      "x": 0, "y": 0
+      "x": 0,
+      "y": 0
     },
     {
       "id": "clouds",
@@ -20,101 +25,163 @@
       "type": "animated",
       "sprite_key": "CITY_BUILDING_BLUE",
       "fps": 0,
-      "x": 36, "y": 0,
-      "tint": [100, 115, 165]
+      "x": 36,
+      "y": 0,
+      "tint": [
+        100,
+        115,
+        165
+      ]
     },
     {
       "id": "bg2_building_b",
       "type": "animated",
       "sprite_key": "CITY_BUILDING_RED",
       "fps": 0,
-      "x": 108, "y": 2,
-      "tint": [100, 115, 165]
+      "x": 108,
+      "y": 2,
+      "tint": [
+        100,
+        115,
+        165
+      ]
     },
     {
       "id": "bg2_building_c",
       "type": "animated",
       "sprite_key": "CITY_BUILDING_BLUE",
       "fps": 0,
-      "x": 166, "y": 0,
-      "tint": [100, 115, 165]
+      "x": 166,
+      "y": 0,
+      "tint": [
+        100,
+        115,
+        165
+      ]
     },
     {
       "id": "bg_building_skyscraper",
       "type": "animated",
       "sprite_key": "CITY_BUILDING_RED",
       "fps": 0,
-      "x": 12, "y": 10,
-      "tint": [150, 160, 200]
+      "x": 12,
+      "y": 10,
+      "tint": [
+        150,
+        160,
+        200
+      ]
     },
     {
       "id": "bg_building_red",
       "type": "animated",
       "sprite_key": "CITY_BUILDING_RED",
       "fps": 0,
-      "x": 88, "y": 16,
-      "tint": [150, 160, 200]
+      "x": 88,
+      "y": 16,
+      "tint": [
+        150,
+        160,
+        200
+      ]
     },
     {
       "id": "bg_building_blue",
       "type": "animated",
       "sprite_key": "CITY_BUILDING_BLUE",
       "fps": 0,
-      "x": 190, "y": 22,
-      "tint": [150, 160, 200]
+      "x": 190,
+      "y": 22,
+      "tint": [
+        150,
+        160,
+        200
+      ]
     },
     {
       "id": "building_red",
       "type": "animated",
       "sprite_key": "CITY_BUILDING_SHOPFRONT",
       "fps": 0,
-      "x": 0, "y": 81
+      "x": 0,
+      "y": 81
     },
     {
       "id": "building_skyscraper",
       "type": "animated",
       "sprite_key": "CITY_BUILDING_SKYSCRAPER",
       "fps": 0,
-      "x": 48, "y": 28
+      "x": 48,
+      "y": 28
     },
     {
       "id": "building_blue",
       "type": "animated",
       "sprite_key": "CITY_BUILDING_TEAL",
       "fps": 0,
-      "x": 128, "y": 75
+      "x": 128,
+      "y": 75
     },
     {
       "id": "building_bar",
       "type": "animated",
       "sprite_key": "CITY_BUILDING_BAR",
       "fps": 0,
-      "x": 176, "y": 70
+      "x": 176,
+      "y": 70
     },
     {
       "id": "lamp_left",
       "type": "animated",
       "sprite_key": "CITY_LAMP_GLOBE_WIDE",
       "fps": 0,
-      "x": 164, "y": 93
+      "x": 164,
+      "y": 93
     },
     {
       "id": "pavement",
       "type": "static",
       "sprite_key": "CITY_PAVEMENT",
-      "x": 0, "y": 124
+      "x": 0,
+      "y": 124
     },
     {
       "id": "road",
       "type": "static",
       "sprite_key": "CITY_ROAD",
-      "x": 0, "y": 130
+      "x": 0,
+      "y": 130
     },
     {
       "id": "cars",
       "type": "car_lane",
       "sprite_key": "CITY_CARS_STRIP",
-      "car_rects": [[0, 0, 64, 32], [81, 0, 47, 32], [160, 0, 64, 32], [260, 0, 48, 32]],
+      "car_rects": [
+        [
+          0,
+          0,
+          64,
+          32
+        ],
+        [
+          81,
+          0,
+          47,
+          32
+        ],
+        [
+          160,
+          0,
+          64,
+          32
+        ],
+        [
+          260,
+          0,
+          48,
+          32
+        ]
+      ],
       "scroll_speed": 2.5,
       "y": 128,
       "spawn_min": 60,
@@ -134,51 +201,189 @@
       "start_surface": "pavement",
       "surfaces": {
         "pavement": {
-          "depth_y_far": 100, "depth_y_near": 107,
-          "depth_scale_far": 0.85, "depth_scale_near": 1.1,
+          "depth_y_far": 128,
+          "depth_y_near": 135,
+          "depth_scale_far": 0.85,
+          "depth_scale_near": 1.1,
           "waypoints": [
-            [12,103],[40,100],[78,106],[110,101],[145,100],[175,104],
-            [190,107],[60,102],[130,105],[20,101],[165,100],[88,104]
+            [
+              12,
+              133
+            ],
+            [
+              45,
+              132
+            ],
+            [
+              78,
+              132
+            ],
+            [
+              108,
+              131
+            ],
+            [
+              150,
+              132
+            ],
+            [
+              170,
+              129
+            ],
+            [
+              190,
+              133
+            ],
+            [
+              61,
+              130
+            ],
+            [
+              140,
+              130
+            ],
+            [
+              23,
+              130
+            ],
+            [
+              216,
+              130
+            ],
+            [
+              92,
+              134
+            ]
           ],
           "transition_chance": 0.15,
           "transitions": [
-            {"to": "roof_red",        "via": "offscreen", "exit_side": "left",  "entry_x": 6,   "entry_y": 58},
-            {"to": "roof_skyscraper", "via": "offscreen", "exit_side": "left",  "entry_x": 55,  "entry_y": 6},
-            {"to": "roof_bar",        "via": "offscreen", "exit_side": "right", "entry_x": 232, "entry_y": 47}
+            {
+              "to": "roof_red",
+              "via": "offscreen",
+              "exit_side": "left",
+              "entry_x": 6,
+              "entry_y": 90
+            },
+            {
+              "to": "roof_skyscraper",
+              "via": "offscreen",
+              "exit_side": "left",
+              "entry_x": 1,
+              "entry_y": 100
+            },
+            {
+              "to": "roof_bar",
+              "via": "offscreen",
+              "exit_side": "right",
+              "entry_x": 238,
+              "entry_y": 84
+            }
           ]
         },
         "roof_red": {
-          "persp": 0.82, "y": 58, "x_min": 4, "x_max": 44,
+          "persp": 0.82,
+          "y": 90,
+          "x_min": 2,
+          "x_max": 40,
           "transition_chance": 0.4,
           "transitions": [
-            {"to": "pavement", "via": "jump", "from_x": 6,  "land_x": 4,  "land_y": 105},
-            {"to": "pavement", "via": "jump", "from_x": 44, "land_x": 44, "land_y": 105}
+            {
+              "to": "pavement",
+              "via": "jump",
+              "from_x": 6,
+              "land_x": 2,
+              "land_y": 127
+            },
+            {
+              "to": "pavement",
+              "via": "jump",
+              "from_x": 41,
+              "land_x": 52,
+              "land_y": 128
+            }
           ]
         },
         "roof_skyscraper": {
-          "persp": 0.78, "y": 6, "x_min": 50, "x_max": 126,
+          "persp": 0.78,
+          "y": 100,
+          "x_min": 103,
+          "x_max": 126,
           "transition_chance": 0.35,
           "transitions": [
-            {"to": "roof_red",  "via": "jump", "from_x": 52,  "land_x": 42,  "land_y": 58},
-            {"to": "roof_blue", "via": "jump", "from_x": 122, "land_x": 132, "land_y": 52}
+            {
+              "to": "roof_red",
+              "via": "jump",
+              "from_x": 102,
+              "land_x": 94,
+              "land_y": 90
+            },
+            {
+              "to": "roof_blue",
+              "via": "jump",
+              "from_x": 122,
+              "land_x": 130,
+              "land_y": 86
+            }
           ]
         },
         "roof_blue": {
-          "persp": 0.82, "y": 52, "x_min": 130, "x_max": 174,
+          "persp": 0.82,
+          "y": 83,
+          "x_min": 130,
+          "x_max": 174,
           "transition_chance": 0.4,
           "transitions": [
-            {"to": "roof_bar", "via": "jump", "from_x": 172, "land_x": 180, "land_y": 47},
-            {"to": "pavement", "via": "jump", "from_x": 130, "land_x": 130, "land_y": 105},
-            {"to": "pavement", "via": "jump", "from_x": 174, "land_x": 174, "land_y": 105}
+            {
+              "to": "roof_bar",
+              "via": "jump",
+              "from_x": 172,
+              "land_x": 190,
+              "land_y": 82
+            },
+            {
+              "to": "pavement",
+              "via": "jump",
+              "from_x": 130,
+              "land_x": 134,
+              "land_y": 124
+            },
+            {
+              "to": "pavement",
+              "via": "jump",
+              "from_x": 174,
+              "land_x": 185,
+              "land_y": 126
+            }
           ]
         },
         "roof_bar": {
-          "persp": 0.82, "y": 47, "x_min": 178, "x_max": 234,
+          "persp": 0.82,
+          "y": 80,
+          "x_min": 178,
+          "x_max": 234,
           "transition_chance": 0.4,
           "transitions": [
-            {"to": "roof_blue", "via": "jump", "from_x": 180, "land_x": 170, "land_y": 52},
-            {"to": "pavement",  "via": "jump", "from_x": 200, "land_x": 200, "land_y": 105},
-            {"to": "pavement",  "via": "jump", "from_x": 234, "land_x": 234, "land_y": 105}
+            {
+              "to": "roof_blue",
+              "via": "jump",
+              "from_x": 180,
+              "land_x": 168,
+              "land_y": 83
+            },
+            {
+              "to": "pavement",
+              "via": "jump",
+              "from_x": 200,
+              "land_x": 188,
+              "land_y": 125
+            },
+            {
+              "to": "pavement",
+              "via": "jump",
+              "from_x": 234,
+              "land_x": 226,
+              "land_y": 126
+            }
           ]
         }
       }
